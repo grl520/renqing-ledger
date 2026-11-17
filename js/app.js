@@ -16,7 +16,7 @@
 
   var ETYPE = {
     birthday: { label: '生日', icon: '🎂', cls: 'birthday' },
-    memorial: { label: '祭日', icon: '🕯️', cls: 'memorial' },
+    memorial: { label: '忌日', icon: '🕯️', cls: 'memorial' },
     banquet: { label: '宴请', icon: '🧧', cls: 'banquet' },
     custom: { label: '事项', icon: '📌', cls: 'custom' }
   };
@@ -209,7 +209,7 @@
     { id: 'rel', name: '关系', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="18" r="2.6"/><circle cx="19" cy="18" r="2.6"/><path d="M12 7.6v3.2M10.2 12.6 6.6 16M13.8 12.6 17.4 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
     { id: 'ledger', name: '礼金', icon: '<svg viewBox="0 0 24 24"><path d="M5 4.5h11.5A2.5 2.5 0 0 1 19 7v12.5H7A2 2 0 0 1 5 17.5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 9h7M8.5 12.5h4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
     { id: 'cal', name: '日历', icon: '<svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 10h16M8.5 4v3.2M15.5 4v3.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
-    { id: 'story', name: '故事', icon: '<svg viewBox="0 0 24 24"><path d="M12 6.5c-1.8-1.4-4-1.8-6.5-1.2v12c2.5-.6 4.7-.2 6.5 1.2 1.8-1.4 4-1.8 6.5-1.2v-12c-2.5-.6-4.7-.2-6.5 1.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 6.5v12" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' },
+    { id: 'story', name: '往事', icon: '<svg viewBox="0 0 24 24"><path d="M12 6.5c-1.8-1.4-4-1.8-6.5-1.2v12c2.5-.6 4.7-.2 6.5 1.2 1.8-1.4 4-1.8 6.5-1.2v-12c-2.5-.6-4.7-.2-6.5 1.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 6.5v12" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' },
     { id: 'set', name: '设置', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' }
   ];
 
@@ -270,7 +270,7 @@
     var c = ringCounts();
     var t = allTotals();
     var head = pageHead('关系网络',
-      c.total + ' 位亲友 · 至亲 ' + c[1] + ' · 亲友 ' + c[2] + ' · 朋友 ' + c[3],
+      '共 ' + c.total + ' 人 · 至亲 ' + c[1] + ' · 亲友 ' + c[2] + ' · 朋友 ' + c[3],
       '<button class="btn" data-act="add-person">添加成员</button>');
 
     var bar = '<div class="rel-bar">' +
@@ -376,7 +376,7 @@
           '</button>';
       }).join('') + '</div>';
     });
-    if (!found) html += '<div class="empty">没找到「' + U.esc(q) + '」</div>';
+    if (!found) html += '<div class="empty"><span class="em-ico">🔍</span>没找到「' + U.esc(q) + '」</div>';
     return html;
   }
 
@@ -404,8 +404,8 @@
       '<button class="btn" data-act="add-gift">记一笔</button>');
 
     var stats = '<div class="stat-row">' +
-      '<div class="stat in"><span>收礼</span><b>' + U.money(tin) + '</b><em>' + list.filter(function (g) { return g.dir === 'in'; }).length + ' 笔</em></div>' +
-      '<div class="stat out"><span>送礼</span><b>' + U.money(tout) + '</b><em>' + list.filter(function (g) { return g.dir === 'out'; }).length + ' 笔</em></div>' +
+      '<div class="stat in"><span>累计收</span><b>' + U.money(tin) + '</b><em>' + list.filter(function (g) { return g.dir === 'in'; }).length + ' 笔</em></div>' +
+      '<div class="stat out"><span>累计送</span><b>' + U.money(tout) + '</b><em>' + list.filter(function (g) { return g.dir === 'out'; }).length + ' 笔</em></div>' +
       '<div class="stat net"><span>净往来</span><b class="' + (tin - tout >= 0 ? 'c-in' : 'c-out') + '">' + (tin - tout >= 0 ? '+' : '−') + U.money(Math.abs(tin - tout)) + '</b><em>' + (tin - tout >= 0 ? '收多于送' : '送多于收') + '</em></div>' +
       '</div>';
 
@@ -441,7 +441,7 @@
         '</button>';
     });
     if (cur) rows += '</div>';
-    if (!list.length) rows = '<div class="empty">这段时间还没有记录<br><button class="btn small" data-act="add-gift">记第一笔</button></div>';
+    if (!list.length) rows = '<div class="empty"><span class="em-ico">🧾</span>这段时间还没有记录<br><button class="btn small" data-act="add-gift">记第一笔</button></div>';
 
     v.innerHTML = '<div class="page">' + head + stats + filters + rows + '</div>';
   }
@@ -511,7 +511,7 @@
       '<button class="btn" data-act="add-event">加事项</button>');
 
     var chips = '<div class="filter-bar"><div class="seg small">' +
-      [['all', '全部'], ['birthday', '生日'], ['memorial', '祭日'], ['banquet', '宴请'], ['custom', '事项']].map(function (x) {
+      [['all', '全部'], ['birthday', '生日'], ['memorial', '忌日'], ['banquet', '宴请'], ['custom', '事项']].map(function (x) {
         return '<button data-act="cal-filter" data-ft="' + x[0] + '" class="' + (ui.cal.filter === x[0] ? 'on' : '') + '">' + x[1] + '</button>';
       }).join('') + '</div></div>';
 
@@ -556,7 +556,7 @@
       '<div class="cal-week">' + ['一', '二', '三', '四', '五', '六', '日'].map(function (w) { return '<span>' + w + '</span>'; }).join('') + '</div>' +
       '<div class="cal-grid">' + grid + '</div>' +
       '<div class="cal-legend">' +
-      '<span><i class="dot birthday"></i>生日</span><span><i class="dot memorial"></i>祭日</span>' +
+      '<span><i class="dot birthday"></i>生日</span><span><i class="dot memorial"></i>忌日</span>' +
       '<span><i class="dot banquet"></i>宴请</span><span><i class="dot custom"></i>事项</span></div>' +
       '</div>';
 
@@ -570,7 +570,7 @@
 
     var upHtml = up.slice(0, 10).map(function (it) {
       return eventRow(it, it.date, true);
-    }).join('') || '<div class="empty">未来 60 天没有事项</div>';
+    }).join('') || '<div class="empty"><span class="em-ico">🗓️</span>未来 60 天没有事项</div>';
 
     v.innerHTML = '<div class="page">' + head + chips +
       '<div class="cal-layout">' + cal + dayPanel + '</div>' +
@@ -710,7 +710,7 @@
     var aboutHtml = '<div class="set-panel"><h3><span class="pi">ℹ️</span>关于</h3>' +
       '<p class="hint">人情往来 · 记礼金、看关系、过好每一个该到的日子。<br>' +
       '当前模式：' + ((window.Auth && Auth.isServer && Auth.isServer()) ? 'NAS 多设备同步' : '本地演示') + '<br>' +
-      '版本 v1.2.11</p></div>';
+      '版本 v1.2.12</p></div>';
 
     v.innerHTML = '<div class="page">' + head +
       '<div class="set-grid">' + themeHtml + userHtml + dataHtml + aboutHtml + '</div></div>';
@@ -802,7 +802,7 @@
     });
   }
 
-  /* ---------------- 故事板块 ---------------- */
+  /* ---------------- 陈年往事板块 ---------------- */
   var MOODS = ['热闹', '开心', '温暖', '怀念', '感动', '有趣', '平淡', '难忘'];
 
   function storySorted() {
@@ -824,7 +824,7 @@
     var all = storySorted();
     var list = filteredStories();
     var head = pageHead('陈年往事', '记下和某些人、某群人经历的事，以及那些有趣的日子',
-      '<button class="btn" data-act="add-story">写故事</button>');
+      '<button class="btn" data-act="add-story">记一段往事</button>');
 
     var moodCount = {};
     all.forEach(function (s) { if (s.mood) moodCount[s.mood] = (moodCount[s.mood] || 0) + 1; });
@@ -855,7 +855,7 @@
       }).join('');
       var sp = (s.photos || []).filter(Boolean);
       var photoStrip = sp.length ? '<div class="story-photo-strip">' + sp.slice(0, 9).map(function (u) {
-        return '<img src="' + U.esc(u) + '" alt="故事照片" loading="lazy">';
+        return '<img src="' + U.esc(u) + '" alt="往事照片" loading="lazy">';
       }).join('') + '</div>' : '';
       rows += '<button class="story-card" data-act="edit-story" data-sid="' + s.id + '">' +
         '<div class="story-top"><span class="story-emoji">' + U.esc(s.emoji || '📖') + '</span>' +
@@ -869,14 +869,14 @@
         '</div></button>';
     });
     if (!list.length) {
-      rows = '<div class="empty">' + (all.length ? '还没有和这位成员相关的故事' : '还没有故事<br>点右上「写故事」记下第一段回忆') +
-        '<br><button class="btn small" data-act="add-story">写第一段故事</button></div>';
+      rows = '<div class="empty">' + (!all.length ? '<span class="em-ico">📖</span>' : '') + (all.length ? '还没有和这位成员相关的往事' : '还没有往事，点下面写下第一段') +
+        (!all.length ? '<br><button class="btn small" data-act="add-story">记第一段往事</button>' : '') + '</div>';
     }
 
     v.innerHTML = '<div class="page">' + head + stats +
       '<div class="story-filter-wrap">' + chips + '</div>' +
       '<div class="story-timeline">' + rows + '</div>' +
-      '<div class="foot-note">人情往来 · v1.2.11<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.12<br>往事只保存在自己的账本里，可到设置导出备份</div>' +
       '</div>';
   }
 
@@ -884,7 +884,7 @@
     var s = sid ? (state.stories || []).filter(function (x) { return x.id === sid; })[0] : null;
     var isNew = !s;
     var picked = s ? (s.pids || []).slice() : [];
-    var photos = s ? (s.photos || []).slice() : [];   // 故事照片 URL 列表
+    var photos = s ? (s.photos || []).slice() : [];   // 往事照片 URL 列表
     var storyKey = s ? s.id : U.uid('s_');
     function photoHtml() {
       return photos.map(function (url, i) {
@@ -909,7 +909,7 @@
       }).join('') +
       '</div></div>' +
       '<label class="field"><span>回忆正文</span><textarea class="input story-area" name="content" rows="6" placeholder="那天发生了什么？记下来，免得忘了……">' + U.esc(s ? s.content : '') + '</textarea></label>' +
-      '<div class="field"><span>故事照片（选填，可多张）</span>' +
+      '<div class="field"><span>往事照片（选填，可多张）</span>' +
       '<div class="story-photos" id="storyPhotos">' + photoHtml() + '</div>' +
       '<div class="story-photo-ctl"><label class="btn ghost sm" for="storyPhotoInput">＋ 添加照片</label>' +
       '<input type="file" id="storyPhotoInput" accept="image/*" multiple hidden></div>' +
@@ -918,7 +918,7 @@
       '</div>';
     var footer = (!isNew ? '<button class="btn ghost danger" data-del="1">删除</button>' : '') +
       '<button class="btn" data-save="1">保存</button>';
-    var root = openSheet({ title: isNew ? '写一段故事' : '编辑故事', body: body, footer: footer });
+    var root = openSheet({ title: isNew ? '写一段往事' : '编辑往事', body: body, footer: footer });
     root.querySelectorAll('.spick').forEach(function (b) {
       b.addEventListener('click', function () { b.classList.toggle('on'); });
     });
@@ -930,7 +930,7 @@
       var files = Array.prototype.slice.call(photoInput.files || []);
       photoInput.value = '';
       files.forEach(function (f) {
-        if (photos.length >= 9) { toast('一个故事最多放 9 张照片'); return; }
+        if (photos.length >= 9) { toast('一篇往事最多放 9 张照片'); return; }
         photos.push(null); refreshPhotos();
         var idx = photos.length - 1;
         uploadAvatar(storyKey + '_img' + U.uid(''), f, function (url) {
@@ -968,7 +968,7 @@
     });
     var del = root.querySelector('[data-del]');
     if (del) del.addEventListener('click', function () {
-      if (!confirm('删除这篇故事？')) return;
+      if (!confirm('删除这篇往事？')) return;
       state.stories = (state.stories || []).filter(function (x) { return x.id !== sid; });
       save(); closeSheet(); render(); toast('已删除');
     });
@@ -1000,7 +1000,7 @@
             '<span class="me-event-txt"><b>' + U.esc(s.title) + '</b><em>' + U.cnDate(s.date) + (s.mood ? ' · ' + U.esc(s.mood) : '') + '</em></span>' +
             '<span class="me-event-day">›</span></button>';
         }).join('')
-      : '<div class="me-empty">还没有回忆，去「陈年往事」写下第一段</div>';
+      : '<div class="empty sm"><span class="em-ico">📖</span>还没有往事，去「陈年往事」写下第一段</div>';
 
     // 近期事项：未来 60 天内的生日 / 忌日 / 自定义事项
     var upsAll = upcoming(60);
@@ -1013,7 +1013,7 @@
             '<span class="me-event-day">' + (it.offset === 0 ? '今天' : it.offset + ' 天后') + '</span>' +
             '</button>';
         }).join('')
-      : '<div class="me-empty">近两个月没有待办事项</div>';
+      : '<div class="empty sm"><span class="em-ico">🗓️</span>近两个月没有待办事项</div>';
 
     // 最近往来
     var giftsAll = state.gifts.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
@@ -1026,10 +1026,10 @@
             '<b class="' + (g.dir === 'in' ? 'c-in' : 'c-out') + '">' + (g.dir === 'in' ? '+' : '−') + U.money(g.amount) + '</b>' +
             '</div>';
         }).join('')
-      : '<div class="me-empty">还没有往来记录，点右上「记一笔」开始</div>';
+      : '<div class="empty sm"><span class="em-ico">🧾</span>还没有往来记录，点右上「记一笔」开始</div>';
 
     var html = '<div class="page">' +
-      pageHead('我的', '数据保存在 NAS，多设备实时同步',
+      pageHead('我的', apiOK ? '数据保存在 NAS，多设备实时同步' : '数据只保存在这台设备上',
         '<button class="btn ghost" data-act="add-person">添加成员</button>' +
         '<button class="btn" data-act="add-gift">记一笔</button>') +
       '<div class="me-card">' +
@@ -1067,11 +1067,11 @@
       '<div class="me-list">' + recentHtml + '</div>' +
       moreBtn(giftsAll.length, 'ledger', '礼金台账') +
 
-      '<div class="sec-title"><span>回忆</span><em>共 ' + stories.length + ' 篇陈年往事 · 点开可编辑</em></div>' +
+      '<div class="sec-title"><span>陈年往事</span><em>共 ' + stories.length + ' 篇 · 点开可编辑</em></div>' +
       '<div class="me-list">' + storiesHtml + '</div>' +
       moreBtn(stories.length, 'story', '陈年往事') +
 
-      '<div class="foot-note">人情往来 · v1.2.11<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.12<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
@@ -1311,7 +1311,7 @@
       '<label class="field"><span>事项</span><input class="input" name="title" value="' + U.esc(e ? e.title : '') + '" placeholder="如：二叔六十大寿"></label>' +
       '<div class="field-2">' +
       '<label class="field"><span>类型</span><select class="select" name="type">' +
-      [['banquet', '宴请 / 红白事'], ['birthday', '生日'], ['memorial', '祭日'], ['custom', '其他事项']].map(function (x) {
+      [['banquet', '宴请 / 红白事'], ['birthday', '生日'], ['memorial', '忌日'], ['custom', '其他事项']].map(function (x) {
         return '<option value="' + x[0] + '"' + ((e ? e.type : 'banquet') === x[0] ? ' selected' : '') + '>' + x[1] + '</option>';
       }).join('') + '</select></label>' +
       '<label class="field"><span>日期</span><input class="input" type="date" name="date" value="' + (e ? e.date : (date || U.todayISO())) + '"></label></div>' +
