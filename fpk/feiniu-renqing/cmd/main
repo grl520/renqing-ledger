@@ -1,0 +1,93 @@
+#!/bin/bash
+# 人情往来 生命周期脚本：应用中心调用 cmd/main start|stop|status
+# 网关模式：桌面把 /app/feiniu-renqing 的请求转发到 APPDEST/app.sock（外网经统一网关同源进入）
+
+APPNAME="${TRIM_APPNAME:-feiniu-renqing}"
+APPDEST="${TRIM_APPDEST:-/var/apps/${APPNAME}/target}"
+PKGVAR="${TRIM_PKGVAR:-/var/apps/${APPNAME}/var}"
+PIDFILE="${PKGVAR}/app.pid"
+LOGFILE="${PKGVAR}/info.log"
+SOCKET="${APPDEST}/app.sock"
+PY="${APPDEST}/server.py"
+PORT="${TRIM_SERVICE_PORT:-8896}"
+GATE_PREFIX="/app/${APPNAME}"
+
+log_msg() { echo "$(date '+%Y-%m-%d %H:%M:%S') - $*" >> "${LOGFILE}" 2>/dev/null; }
+log_tmp() { [ -n "${TRIM_TEMP_LOGFILE:-}" ] && echo "[人情往来] $*" >> "${TRIM_TEMP_LOGFILE}" 2>/dev/null; return 0; }
+check_process() { kill -0 "$1" 2>/dev/null; }
+
+status() {
+  if [ -f "${PIDFILE}" ]; then
+    pid=$(head -n 1 "${PIDFILE}" | tr -d '[:space:]')
+    if [ -n "${pid}" ] && check_process "${pid}"; then return 0; fi
+    rm -f "${PIDFILE}"
+  fi
+  return 1
+}
+
+start_process() {
+  if status; then log_msg "already running"; return 0; fi
+  mkdir -p "${PKGVAR}/data" 2>/dev/null
+  if [ ! -f "${PY}" ]; then
+    log_tmp "应用文件缺失：server.py"; log_msg "ERROR: ${PY} not found"; return 1
+  fi
+  local pybin=""
+  if command -v python3 >/dev/null 2>&1; then pybin="python3";
+  elif command -v python >/dev/null 2>&1; then pybin="python";
+  else
+    log_tmp "未找到 Python3，无法启动"; log_msg "ERROR: python3 not found"; return 1
+  fi
+
+  # 统一网关：桌面按 ui/config 的 gatewaySocket 转发到此 Unix Socket
+  rm -f "${SOCKET}" 2>/dev/null
+  export FNNAS_GATEWAY_SOCKET="${SOCKET}"
+  export FNNAS_GATEWAY_PREFIX="${GATE_PREFIX}"
+  export GATEWAY_SOCKET="${SOCKET}"
+  export GATEWAY_PREFIX="${GATE_PREFIX}"
+
+  log_msg "Starting ${pybin} on socket ${SOCKET} (port ${PORT}) ..."
+  FN_PORT="${PORT}" TRIM_PKGVAR="${PKGVAR}" nohup "${pybin}" "${PY}" >> "${LOGFILE}" 2>&1 &
+  local pid=$!
+  printf "%s" "${pid}" > "${PIDFILE}"
+  # 等待 socket 就绪（网关模式）或进程存活（直连模式）
+  local i=0
+  while [ ${i} -lt 20 ]; do
+    if [ -S "${SOCKET}" ]; then break; fi
+    check_process "${pid}" || break
+    i=$((i + 1)); sleep 0.5
+  done
+  if [ -S "${SOCKET}" ] || check_process "${pid}"; then
+    log_msg "started (PID ${pid}) socket=$([ -S "${SOCKET}" ] && echo ready || echo none)"
+    return 0
+  fi
+  rm -f "${PIDFILE}"
+  log_tmp "服务启动失败，日志：${LOGFILE}"
+  log_msg "ERROR: start failed"; return 1
+}
+
+stop_process() {
+  log_msg "Stopping ..."
+  if [ -f "${PIDFILE}" ]; then
+    pid=$(head -n 1 "${PIDFILE}" | tr -d '[:space:]')
+    if [ -n "${pid}" ] && check_process "${pid}"; then
+      kill -TERM "${pid}" 2>/dev/null
+      local count=0
+      while check_process "${pid}" && [ ${count} -lt 20 ]; do
+        sleep 0.5; count=$((count + 1))
+      done
+      if check_process "${pid}"; then kill -KILL "${pid}" 2>/dev/null; fi
+    fi
+    rm -f "${PIDFILE}"
+  fi
+  pkill -f "${PY}" 2>/dev/null
+  rm -f "${SOCKET}" 2>/dev/null
+  log_msg "stopped"; return 0
+}
+
+case "$1" in
+  start)   start_process ;;
+  stop)    stop_process ;;
+  status)  if status || [ -S "${SOCKET}" ]; then exit 0; else exit 3; fi ;;
+  restart) stop_process; sleep 1; start_process ;;
+  *)       exit 1 ;;
+esac

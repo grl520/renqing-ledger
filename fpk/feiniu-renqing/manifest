@@ -1,0 +1,15 @@
+appname               = feiniu-renqing
+version               = 1.1.0
+display_name          = 人情往来
+desc                  = 记礼金、看关系、过好每一个该到的日子。生日忌日自动进日历，礼金台账可按人按时间分享。
+platform              = all
+source                = thirdparty
+maintainer            = 人情往来
+distributor           = 人情往来
+service_port          = 8896
+checkport             = false
+ctl_stop              = true
+os_min_version        = 1.0.0
+desktop_uidir         = ui
+desktop_applaunchname = feiniu-renqing.Application
+changelog             = 1.1.0 接入统一网关（桌面内嵌打开、外网可达）；全新界面与图标；关系图支持圈层筛选；人员档案支持照片、手机与地址；可自定义数据保存路径。

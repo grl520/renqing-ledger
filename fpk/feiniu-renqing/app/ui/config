@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "feiniu-renqing.Application": {
+            "title": "人情往来",
+            "icon": "images/icon_{0}.png",
+            "type": "iframe",
+            "protocol": "",
+            "gatewayPrefix": "/app/feiniu-renqing",
+            "gatewaySocket": "app.sock",
+            "url": "/app/feiniu-renqing",
+            "allUsers": true
+        }
+    }
+}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>人情往来</title>
+<meta name="theme-color" content="#F0553F">
+<meta name="description" content="人情往来 · 记礼金、看关系、过好每一个该到的日子">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23F0553F'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='%23fff' font-family='sans-serif'%3E%E7%A4%BC%3C/text%3E%3C/svg%3E'>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="sidenav">
+    <div class="brand">
+      <span class="brand-mark">礼</span>
+      <div class="brand-txt"><b>人情往来</b><span>有来有往，记在心里</span></div>
+    </div>
+    <nav class="nav" id="sideNav"></nav>
+    <div class="side-foot">
+      <div class="side-note">数据只存在这台设备的浏览器里</div>
+      <button class="side-share" data-act="share-center">分享中心 <span>→</span></button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="view on" id="view-rel"></section>
+    <section class="view" id="view-ledger"></section>
+    <section class="view" id="view-cal"></section>
+    <section class="view" id="view-me"></section>
+  </main>
+
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<div class="modal-root" id="modalRoot"></div>
+<div class="toast" id="toast"></div>
+<div class="share-view" id="shareView" hidden></div>
+
+<script src="js/data.js"></script>
+<script src="js/graph.js"></script>
+<script src="js/share.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
