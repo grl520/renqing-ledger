@@ -965,6 +965,15 @@ textarea.input { padding: 10px 12px; height: auto; resize: vertical; line-height
 .spick:hover { border-color: var(--gold-line); }
 .spick.on { color: #fff; background: var(--red); border-color: var(--red); }
 .story-area { resize: vertical; line-height: 1.7; font-family: inherit; }
+/* 故事照片 */
+.story-photos { display: flex; flex-wrap: wrap; gap: 8px; }
+.story-photo { position: relative; width: 74px; height: 74px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--card-alt); }
+.story-photo img { width: 100%; height: 100%; object-fit: cover; }
+.story-photo-x { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; border: 0; background: rgba(20,20,20,.6); color: #fff; font-size: 11px; line-height: 20px; text-align: center; padding: 0; cursor: pointer; }
+.story-photo-ctl { margin-top: 2px; }
+.field-note { display: block; font-style: normal; font-size: 10.5px; color: var(--ink-3); margin-top: 7px; line-height: 1.6; }
+.story-photo-strip { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 12px; }
+.story-photo-strip img { width: 62px; height: 62px; object-fit: cover; border-radius: 9px; border: 1px solid var(--line); }
 
 /* 我的页 → 故事入口 */
 .me-story-entry {
@@ -973,6 +982,8 @@ textarea.input { padding: 10px 12px; height: auto; resize: vertical; line-height
   background: var(--gold-soft); border: 1px solid var(--gold-line); position: relative; z-index: 1;
 }
 .me-story-entry:hover { border-color: var(--gold); }
+.me-share-entry { background: var(--card-alt); border-color: var(--line); margin-top: 8px; }
+.me-share-entry .mse-ico { background: var(--gold-soft); }
 .mse-ico {
   width: 38px; height: 38px; flex: none; border-radius: 11px; display: grid; place-items: center;
   font-size: 20px; background: var(--card);

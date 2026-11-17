@@ -423,7 +423,7 @@ window.Graph = (function () {
         var d = document.createElement('div');
         d.innerHTML = '<svg id="heartDefs" width="0" height="0" style="position:absolute"><defs>' +
           '<linearGradient id="heartGrad" x1="0" y1="0" x2="1" y2="1">' +
-          '<stop offset="0%" style="stop-color:var(--red-2, #E4726A)"/><stop offset="55%" style="stop-color:var(--red, #C9403A)"/><stop offset="100%" style="stop-color:var(--red, #A82E2A)"/>' +
+          '<stop offset="0%" stop-color="#F0736B"/><stop offset="55%" stop-color="#E34C46"/><stop offset="100%" stop-color="#C7332F"/>' +
           '</linearGradient></defs></svg>';
         document.body.appendChild(d.firstChild);
       }

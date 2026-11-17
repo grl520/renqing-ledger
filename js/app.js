@@ -160,22 +160,23 @@
       : U.esc(p.emoji || '🙂');
     return '<span class="ava' + (size ? ' ' + size : '') + '">' + inner + '</span>';
   }
-  // 上传头像：压缩后存到 NAS，返回可访问 URL
-  function uploadAvatar(pid, file, cb) {
-    if (!apiOK) { toast('请通过应用中心打开后再上传照片'); return; }
-    if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) { toast('只支持 JPG/PNG/GIF/WebP 图片'); return; }
-    if (file.size > 6 * 1024 * 1024) { toast('图片请小于 6MB'); return; }
+  // 上传照片/头像到 NAS，返回可访问 URL。onErr 可选，用于失败时回收占位
+  function uploadAvatar(pid, file, cb, onErr) {
+    function fail(msg) { toast(msg); if (typeof onErr === 'function') onErr(); }
+    if (!apiOK) { fail('请通过应用中心打开后再上传照片'); return; }
+    if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) { fail('只支持 JPG/PNG/GIF/WebP 图片'); return; }
+    if (file.size > 6 * 1024 * 1024) { fail('图片请小于 6MB'); return; }
     var reader = new FileReader();
     reader.onload = function () {
       apiFetch('/api/avatar/' + encodeURIComponent(pid), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: reader.result })
       }).then(function (r) { return r.json(); }).then(function (res) {
-        if (!res.ok) { toast(res.msg || '上传失败'); return; }
+        if (!res.ok) { fail(res.msg || '上传失败'); return; }
         cb(res.url);
-      }).catch(function () { toast('上传失败，请重试'); });
+      }).catch(function () { fail('上传失败，请重试'); });
     };
-    reader.onerror = function () { toast('读取图片失败'); };
+    reader.onerror = function () { fail('读取图片失败'); };
     reader.readAsDataURL(file);
   }
 
@@ -812,7 +813,7 @@
     var v = document.getElementById('view-story');
     var all = storySorted();
     var list = filteredStories();
-    var head = pageHead('故事', '记下和某些人、某群人经历的事，以及那些有趣的日子',
+    var head = pageHead('陈年往事', '记下和某些人、某群人经历的事，以及那些有趣的日子',
       '<button class="btn" data-act="add-story">写故事</button>');
 
     var moodCount = {};
@@ -842,11 +843,16 @@
         var em = id === 'me' ? (state.me.emoji || '🎁') : (p && p.photo ? '<img class="ava-img" src="' + U.esc(p.photo) + '" alt="">' : (p && p.emoji) || '🙂');
         return '<span class="story-ava">' + em + '</span>';
       }).join('');
+      var sp = (s.photos || []).filter(Boolean);
+      var photoStrip = sp.length ? '<div class="story-photo-strip">' + sp.slice(0, 9).map(function (u) {
+        return '<img src="' + U.esc(u) + '" alt="故事照片" loading="lazy">';
+      }).join('') + '</div>' : '';
       rows += '<button class="story-card" data-act="edit-story" data-sid="' + s.id + '">' +
         '<div class="story-top"><span class="story-emoji">' + U.esc(s.emoji || '📖') + '</span>' +
         '<div class="story-hd"><b>' + U.esc(s.title) + '</b>' +
         '<span>' + U.cnDateFull(s.date) + ' · ' + U.weekday(s.date) + (s.mood ? ' · ' + U.esc(s.mood) : '') + '</span></div></div>' +
         '<p class="story-text">' + U.esc(s.content || '') + '</p>' +
+        photoStrip +
         '<div class="story-foot">' +
         (emails ? '<span class="story-avas">' + emails + '</span><span class="story-names">' + U.esc(names.join('、')) + '</span>' : '<span class="story-names">一个人的日子</span>') +
         '<span class="story-tags">' + (s.tags || []).map(function (t) { return '<i>' + U.esc(t) + '</i>'; }).join('') + '</span>' +
@@ -860,7 +866,7 @@
     v.innerHTML = '<div class="page">' + head + stats +
       '<div class="story-filter-wrap">' + chips + '</div>' +
       '<div class="story-timeline">' + rows + '</div>' +
-      '<div class="foot-note">人情往来 · v1.2.4<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.5<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
       '</div>';
   }
 
@@ -868,8 +874,16 @@
     var s = sid ? (state.stories || []).filter(function (x) { return x.id === sid; })[0] : null;
     var isNew = !s;
     var picked = s ? (s.pids || []).slice() : [];
+    var photos = s ? (s.photos || []).slice() : [];   // 故事照片 URL 列表
+    var storyKey = s ? s.id : U.uid('s_');
+    function photoHtml() {
+      return photos.map(function (url, i) {
+        return '<span class="story-photo"><img src="' + U.esc(url) + '" alt="">' +
+          '<button type="button" class="story-photo-x" data-photo-del="' + i + '" aria-label="移除照片">✕</button></span>';
+      }).join('');
+    }
     var body = '<div class="form">' +
-      '<label class="field"><span>陈年往事</span><input class="input" name="title" value="' + U.esc(s ? s.title : '') + '" placeholder="如：那年我们一起过的年"></label>' +
+      '<label class="field"><span>标题</span><input class="input" name="title" value="' + U.esc(s ? s.title : '') + '" placeholder="如：那年我们一起过的年"></label>' +
       '<div class="field-2">' +
       '<label class="field"><span>日期</span><input class="input" type="date" name="date" value="' + (s ? s.date : U.todayISO()) + '"></label>' +
       '<label class="field"><span>图标</span><input class="input" name="emoji" maxlength="4" value="' + U.esc(s ? (s.emoji || '📖') : '📖') + '" placeholder="一个表情"></label></div>' +
@@ -885,6 +899,11 @@
       }).join('') +
       '</div></div>' +
       '<label class="field"><span>回忆正文</span><textarea class="input story-area" name="content" rows="6" placeholder="那天发生了什么？记下来，免得忘了……">' + U.esc(s ? s.content : '') + '</textarea></label>' +
+      '<div class="field"><span>故事照片（选填，可多张）</span>' +
+      '<div class="story-photos" id="storyPhotos">' + photoHtml() + '</div>' +
+      '<div class="story-photo-ctl"><label class="btn ghost sm" for="storyPhotoInput">＋ 添加照片</label>' +
+      '<input type="file" id="storyPhotoInput" accept="image/*" multiple hidden></div>' +
+      '<em class="field-note">照片会存到 NAS 数据目录，最多 9 张，每张不超过 6MB</em></div>' +
       '<label class="field"><span>标签</span><input class="input" name="tags" value="' + U.esc(s ? (s.tags || []).join('、') : '') + '" placeholder="选填，用顿号分隔，如：春节、家人"></label>' +
       '</div>';
     var footer = (!isNew ? '<button class="btn ghost danger" data-del="1">删除</button>' : '') +
@@ -893,9 +912,33 @@
     root.querySelectorAll('.spick').forEach(function (b) {
       b.addEventListener('click', function () { b.classList.toggle('on'); });
     });
+    // 照片：选择 → 逐张上传 → 插入缩略图；失败回收占位
+    var photoBox = root.querySelector('#storyPhotos');
+    var photoInput = root.querySelector('#storyPhotoInput');
+    function refreshPhotos() { if (photoBox) photoBox.innerHTML = photoHtml(); }
+    if (photoInput) photoInput.addEventListener('change', function () {
+      var files = Array.prototype.slice.call(photoInput.files || []);
+      photoInput.value = '';
+      files.forEach(function (f) {
+        if (photos.length >= 9) { toast('一个故事最多放 9 张照片'); return; }
+        photos.push(null); refreshPhotos();
+        var idx = photos.length - 1;
+        uploadAvatar(storyKey + '_img' + U.uid(''), f, function (url) {
+          photos[idx] = url; refreshPhotos();
+        }, function () {
+          photos.splice(idx, 1); refreshPhotos();
+        });
+      });
+    });
+    if (photoBox) photoBox.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-photo-del]');
+      if (!b) return;
+      photos.splice(Number(b.getAttribute('data-photo-del')), 1); refreshPhotos();
+    });
     root.querySelector('[data-save]').addEventListener('click', function () {
       var title = root.querySelector('[name=title]').value.trim();
-      if (!title) return toast('写个陈年往事吧');
+      if (!title) return toast('写个标题吧');
+      if (photos.some(function (x) { return !x; })) return toast('照片还在上传，稍等一下');
       var pids = [];
       root.querySelectorAll('.spick.on').forEach(function (b) { pids.push(b.getAttribute('data-pick')); });
       var data = {
@@ -905,11 +948,12 @@
         mood: root.querySelector('[name=mood]').value,
         pids: pids,
         content: root.querySelector('[name=content]').value.trim(),
-        tags: root.querySelector('[name=tags]').value.split(/[、,，]/).map(function (x) { return x.trim(); }).filter(Boolean)
+        tags: root.querySelector('[name=tags]').value.split(/[、,，]/).map(function (x) { return x.trim(); }).filter(Boolean),
+        photos: photos
       };
       if (!state.stories) state.stories = [];
       if (s) Object.assign(s, data);
-      else state.stories.push(Object.assign({ id: U.uid('s_') }, data));
+      else state.stories.push(Object.assign({ id: storyKey }, data));
       save(); closeSheet(); render(); toast('记下来了');
     });
     var del = root.querySelector('[data-del]');
@@ -988,6 +1032,11 @@
       '<span class="mse-txt"><b>' + (latestStory ? U.esc(latestStory.title) : '还没有故事') + '</b>' +
       '<em>' + (latestStory ? (stories.length + ' 篇回忆 · 最近写于 ' + U.cnDate(latestStory.date)) : '点这里写下第一段回忆') + '</em></span>' +
       '<span class="mse-go">前往 ›</span></button>' +
+      '<button class="me-story-entry me-share-entry" data-act="share-center">' +
+      '<span class="mse-ico">📤</span>' +
+      '<span class="mse-txt"><b>分享中心</b>' +
+      '<em>导出账本、分享关系与往来，给家人朋友看</em></span>' +
+      '<span class="mse-go">打开 ›</span></button>' +
       '<div class="me-meta">' +
       (me.birthday ? '<span>🎂 ' + U.cnDate(me.birthday) + (daysToBd === 0 ? ' · 今天生日' : ' · ' + daysToBd + ' 天后') + '</span>' : '') +
       (me.since ? '<span>💍 结婚纪念 ' + U.cnDate(me.since) + '</span>' : '') +
@@ -1001,7 +1050,7 @@
       '<div class="sec-title"><span>最近往来</span><em>点「记一笔」记录新的往来</em></div>' +
       '<div class="me-list">' + recentHtml + '</div>' +
 
-      '<div class="foot-note">人情往来 · v1.2.4<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.5<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
