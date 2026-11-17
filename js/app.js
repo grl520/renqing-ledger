@@ -710,7 +710,7 @@
     var aboutHtml = '<div class="set-panel"><h3><span class="pi">ℹ️</span>关于</h3>' +
       '<p class="hint">人情往来 · 记礼金、看关系、过好每一个该到的日子。<br>' +
       '当前模式：' + ((window.Auth && Auth.isServer && Auth.isServer()) ? 'NAS 多设备同步' : '本地演示') + '<br>' +
-      '版本 v1.2.7</p></div>';
+      '版本 v1.2.8</p></div>';
 
     v.innerHTML = '<div class="page">' + head +
       '<div class="set-grid">' + themeHtml + userHtml + dataHtml + aboutHtml + '</div></div>';
@@ -876,7 +876,7 @@
     v.innerHTML = '<div class="page">' + head + stats +
       '<div class="story-filter-wrap">' + chips + '</div>' +
       '<div class="story-timeline">' + rows + '</div>' +
-      '<div class="foot-note">人情往来 · v1.2.7<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.8<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
       '</div>';
   }
 
@@ -1041,25 +1041,25 @@
       '<span class="me-motto">' + U.esc(me.motto || '有来有往，记在心里。') + '</span></div>' +
       '<button class="icon-btn" data-act="edit-me">编辑</button>' +
       '</div>' +
-      '<div class="me-grid">' +
-      '<div><b>' + c.total + '</b><span>亲友成员</span></div>' +
-      '<div><b>' + t.count + '</b><span>往来笔数</span></div>' +
-      '<div><b class="c-in">' + U.money(t.in) + '</b><span>累计收</span></div>' +
-      '<div><b class="c-out">' + U.money(t.out) + '</b><span>累计送</span></div>' +
+      '<div class="me-stat-lines">' +
+      '<div class="me-stat-line">' +
+      '<span class="sl-label">亲友成员 <b>' + c.total + '</b></span>' +
+      '<span class="sl-sub"><i style="background:var(--red)"></i>至亲 <b>' + c[1] + '</b></span>' +
+      '<span class="sl-sub"><i style="background:var(--gold)"></i>亲友 <b>' + c[2] + '</b></span>' +
+      '<span class="sl-sub"><i style="background:var(--ink-3)"></i>朋友 <b>' + c[3] + '</b></span>' +
+      '</div>' +
+      '<div class="me-stat-line">' +
+      '<span class="sl-label">往来笔数 <b>' + t.count + '</b></span>' +
+      '<span class="sl-sub">累计收 <b class="c-in">' + U.money(t.in) + '</b></span>' +
+      '<span class="sl-sub">累计送 <b class="c-out">' + U.money(t.out) + '</b></span>' +
+      '</div>' +
       '</div>' +
       '<div class="me-net">净往来 <b class="' + (net >= 0 ? 'c-in' : 'c-out') + '">' + (net >= 0 ? '收 ' : '送 ') + U.money(net) + '</b>' +
       (wife ? '<span class="me-net-wife">与 ' + U.esc(wife.name) + ' 共同经营</span>' : '') + '</div>' +
-      '<div class="me-ringbar">' +
-      '<span title="至亲"><i style="background:var(--red)"></i>至亲 ' + c[1] + '</span>' +
-      '<span title="亲友"><i style="background:var(--gold)"></i>亲友 ' + c[2] + '</span>' +
-      '<span title="朋友"><i style="background:var(--ink-3)"></i>朋友 ' + c[3] + '</span>' +
-      '</div>' +
-      '<div class="me-meta">' +
+      ((me.birthday || me.since) ? '<div class="me-meta">' +
       (me.birthday ? '<span>🎂 ' + U.cnDate(me.birthday) + (daysToBd === 0 ? ' · 今天生日' : ' · ' + daysToBd + ' 天后') + '</span>' : '') +
       (me.since ? '<span>💍 结婚纪念 ' + U.cnDate(me.since) + '</span>' : '') +
-      (me.phone ? '<span>📱 ' + U.esc(me.phone) + '</span>' : '') +
-      (me.address ? '<span>📍 ' + U.esc(me.address) + '</span>' : '') +
-      '</div></div>' +
+      '</div>' : '') + '</div>' +
 
       '<div class="sec-title"><span>近期事项</span><em>生日 · 忌日 · 自定义</em></div>' +
       '<div class="me-list">' + eventsHtml + '</div>' +
@@ -1073,7 +1073,7 @@
       '<div class="me-list">' + storiesHtml + '</div>' +
       moreBtn(stories.length, 'story', '陈年往事') +
 
-      '<div class="foot-note">人情往来 · v1.2.7<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.8<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
