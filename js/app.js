@@ -13,8 +13,6 @@
     story: { pid: 'all' },
     q: ''
   };
-  // 「我的」页三块列表的展开状态（默认各显示 3 条）
-  var meExpand = { story: false, event: false, gift: false };
 
   var ETYPE = {
     birthday: { label: '生日', icon: '🎂', cls: 'birthday' },
@@ -212,7 +210,7 @@
     { id: 'ledger', name: '礼金', icon: '<svg viewBox="0 0 24 24"><path d="M5 4.5h11.5A2.5 2.5 0 0 1 19 7v12.5H7A2 2 0 0 1 5 17.5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 9h7M8.5 12.5h4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
     { id: 'cal', name: '日历', icon: '<svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 10h16M8.5 4v3.2M15.5 4v3.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
     { id: 'story', name: '故事', icon: '<svg viewBox="0 0 24 24"><path d="M12 6.5c-1.8-1.4-4-1.8-6.5-1.2v12c2.5-.6 4.7-.2 6.5 1.2 1.8-1.4 4-1.8 6.5-1.2v-12c-2.5-.6-4.7-.2-6.5 1.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 6.5v12" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' },
-    { id: 'set', name: '设置', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v2.2M12 18.8V21M4.6 7.5l1.9 1.1M17.5 15.4l1.9 1.1M4.6 16.5l1.9-1.1M17.5 8.6l1.9-1.1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' }
+    { id: 'set', name: '设置', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' }
   ];
 
   /* 五套预设主题 */
@@ -712,7 +710,7 @@
     var aboutHtml = '<div class="set-panel"><h3><span class="pi">ℹ️</span>关于</h3>' +
       '<p class="hint">人情往来 · 记礼金、看关系、过好每一个该到的日子。<br>' +
       '当前模式：' + ((window.Auth && Auth.isServer && Auth.isServer()) ? 'NAS 多设备同步' : '本地演示') + '<br>' +
-      '版本 v1.2.6</p></div>';
+      '版本 v1.2.7</p></div>';
 
     v.innerHTML = '<div class="page">' + head +
       '<div class="set-grid">' + themeHtml + userHtml + dataHtml + aboutHtml + '</div></div>';
@@ -878,7 +876,7 @@
     v.innerHTML = '<div class="page">' + head + stats +
       '<div class="story-filter-wrap">' + chips + '</div>' +
       '<div class="story-timeline">' + rows + '</div>' +
-      '<div class="foot-note">人情往来 · v1.2.6<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.7<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
       '</div>';
   }
 
@@ -987,18 +985,17 @@
     var age = me.birthday ? U.age(me.birthday) : null;
     var stories = storySorted();
 
-    // 统一每块默认显示 3 条，可展开全部
-    function slice3(arr, key) { return meExpand[key] ? arr : arr.slice(0, 3); }
-    function moreBtn(total, key) {
+    // 统一每块默认显示 3 条，点击跳转到对应页面查看全部
+    function moreBtn(total, tab, label) {
       if (total <= 3) return '';
-      return '<button class="me-more" data-act="me-more" data-key="' + key + '">' +
-        (meExpand[key] ? '收起' : '展开全部 ' + total + ' 条') +
-        '<span>' + (meExpand[key] ? '⌃' : '⌄') + '</span></button>';
+      return '<button class="me-more" data-act="tab" data-tab="' + tab + '">' +
+        '查看全部 ' + total + ' 条 · 前往' + label +
+        '<span>›</span></button>';
     }
 
     // 回忆（陈年往事）
     var storiesHtml = stories.length
-      ? slice3(stories, 'story').map(function (s) {
+      ? stories.slice(0, 3).map(function (s) {
           return '<button class="me-event me-memo" data-act="edit-story" data-sid="' + s.id + '">' +
             '<span class="me-event-ico">' + U.esc(s.emoji || '📖') + '</span>' +
             '<span class="me-event-txt"><b>' + U.esc(s.title) + '</b><em>' + U.cnDate(s.date) + (s.mood ? ' · ' + U.esc(s.mood) : '') + '</em></span>' +
@@ -1010,7 +1007,7 @@
     var upsAll = upcoming(60);
     var eventIcon = { birthday: '🎂', memorial: '🕯️', banquet: '🍽️', custom: '📌' };
     var eventsHtml = upsAll.length
-      ? slice3(upsAll, 'event').map(function (it) {
+      ? upsAll.slice(0, 3).map(function (it) {
           return '<button class="me-event" data-act="tab" data-tab="cal">' +
             '<span class="me-event-ico">' + (eventIcon[it.type] || '📌') + '</span>' +
             '<span class="me-event-txt"><b>' + U.esc(it.title) + '</b><em>' + U.esc(it.meta || '') + '</em></span>' +
@@ -1022,7 +1019,7 @@
     // 最近往来
     var giftsAll = state.gifts.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
     var recentHtml = giftsAll.length
-      ? slice3(giftsAll, 'gift').map(function (g) {
+      ? giftsAll.slice(0, 3).map(function (g) {
           var who = g.pid === 'me' ? '我' : pname(g.pid);
           return '<div class="me-recent">' +
             '<span class="me-recent-ico ' + (g.dir === 'in' ? 'in' : 'out') + '">' + (g.dir === 'in' ? '收' : '送') + '</span>' +
@@ -1066,17 +1063,17 @@
 
       '<div class="sec-title"><span>近期事项</span><em>生日 · 忌日 · 自定义</em></div>' +
       '<div class="me-list">' + eventsHtml + '</div>' +
-      moreBtn(upsAll.length, 'event') +
+      moreBtn(upsAll.length, 'cal', '日历') +
 
       '<div class="sec-title"><span>最近往来</span><em>点「记一笔」记录新的往来</em></div>' +
       '<div class="me-list">' + recentHtml + '</div>' +
-      moreBtn(giftsAll.length, 'gift') +
+      moreBtn(giftsAll.length, 'ledger', '礼金台账') +
 
       '<div class="sec-title"><span>回忆</span><em>共 ' + stories.length + ' 篇陈年往事 · 点开可编辑</em></div>' +
       '<div class="me-list">' + storiesHtml + '</div>' +
-      moreBtn(stories.length, 'story') +
+      moreBtn(stories.length, 'story', '陈年往事') +
 
-      '<div class="foot-note">人情往来 · v1.2.6<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.7<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
@@ -1410,11 +1407,6 @@
     if (!t) return;
     var act = t.getAttribute('data-act');
     if (act === 'tab') { ui.tab = t.getAttribute('data-tab'); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-    if (act === 'me-more') {
-      var mk = t.getAttribute('data-key');
-      if (meExpand[mk] !== undefined) { meExpand[mk] = !meExpand[mk]; renderMe(); }
-      return;
-    }
     if (act === 'close') { closeSheet(); return; }
     if (act === 'rel-mode') { ui.relMode = t.getAttribute('data-mode'); render(); return; }
     if (act === 'zoom') { Graph.zoom(Number(t.getAttribute('data-dir'))); return; }
