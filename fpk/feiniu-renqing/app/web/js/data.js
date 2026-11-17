@@ -74,6 +74,12 @@
       { id: 'e2', title: '一诺家长会', date: '2026-11-20', type: 'custom', repeat: 'none', personId: 'p_daughter', note: '下午三点，带成绩单' },
       { id: 'e3', title: '二叔六十大寿', date: '2026-12-08', type: 'banquet', repeat: 'none', personId: 'p_uncle', note: '老家祠堂，随礼 600' },
       { id: 'e4', title: '家族年夜饭', date: '2027-02-17', type: 'banquet', repeat: 'yearly', personId: 'me', note: '轮到我家做东' }
+    ],
+    stories: [
+      { id: 's1', title: '那年我们一起过的年', date: '2024-02-10', emoji: '🏮', mood: '热闹', pids: ['p_wife', 'p_daughter', 'p_father', 'p_mother'], tags: ['春节', '家人'], content: '一诺第一次学会包饺子，捏得歪歪扭扭，煮出来一半成了片儿汤。小满笑着说没事，全家笑成一团。父亲喝了两杯，讲起他小时候过年的事。这样的夜晚，值得记一辈子。' },
+      { id: 's2', title: '和李伟的毕业旅行', date: '2011-07-08', emoji: '🚄', mood: '开心', pids: ['p_friend'], tags: ['旅行', '老友'], content: '绿皮火车站了十二个小时，硬座，脚都麻了。可到了海边那一刻，觉得什么都值。李伟说以后有钱了要带全家再来——如今他真做到了。' },
+      { id: 's3', title: '姐姐乔迁那天', date: '2026-08-16', emoji: '🔑', mood: '温暖', pids: ['p_sister', 'p_bil'], tags: ['乔迁', '亲友'], content: '新房子很大，姐姐却说最开心的是终于有了自己的书房。姐夫张罗了一桌菜，大家挤在阳台上吃，风里都是饭菜香。' },
+      { id: 's4', title: '爷爷爱听的花鼓戏', date: '2019-04-05', emoji: '🕯️', mood: '怀念', pids: ['p_grandpa', 'p_father'], tags: ['怀念', '家人'], content: '爷爷走的那年八十五。他最爱听花鼓戏，收音机天天开着。后来每次清明经过老屋，我好像还能听见那段调子。有些声音，记着就不会散。' }
     ]
   };
 

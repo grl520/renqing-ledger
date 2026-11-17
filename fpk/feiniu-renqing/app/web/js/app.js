@@ -5,11 +5,12 @@
 
   var state = null;
   var ui = {
-    tab: 'rel',
+    tab: 'me',
     relMode: 'graph',
     level: 1,
     ledger: { dir: 'all', range: 'year', pid: 'all' },
     cal: { ym: '', sel: '', filter: 'all' },
+    story: { pid: 'all' },
     q: ''
   };
 
@@ -46,6 +47,7 @@
     s.people = Array.isArray(s.people) ? s.people : [];
     s.gifts = Array.isArray(s.gifts) ? s.gifts : [];
     s.events = Array.isArray(s.events) ? s.events : [];
+    s.stories = Array.isArray(s.stories) ? s.stories : [];
     s.people.forEach(function (p) { if (!p.ring) p.ring = 3; });
     return s;
   }
@@ -202,10 +204,11 @@
 
   /* ---------------- 导航 ---------------- */
   var TABS = [
+    { id: 'me', name: '我的', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 19.5c1.2-3.4 3.7-5 6.5-5s5.3 1.6 6.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
     { id: 'rel', name: '关系', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="18" r="2.6"/><circle cx="19" cy="18" r="2.6"/><path d="M12 7.6v3.2M10.2 12.6 6.6 16M13.8 12.6 17.4 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
     { id: 'ledger', name: '礼金', icon: '<svg viewBox="0 0 24 24"><path d="M5 4.5h11.5A2.5 2.5 0 0 1 19 7v12.5H7A2 2 0 0 1 5 17.5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 9h7M8.5 12.5h4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
     { id: 'cal', name: '日历', icon: '<svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 10h16M8.5 4v3.2M15.5 4v3.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
-    { id: 'me', name: '我的', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 19.5c1.2-3.4 3.7-5 6.5-5s5.3 1.6 6.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
+    { id: 'story', name: '故事', icon: '<svg viewBox="0 0 24 24"><path d="M12 6.5c-1.8-1.4-4-1.8-6.5-1.2v12c2.5-.6 4.7-.2 6.5 1.2 1.8-1.4 4-1.8 6.5-1.2v-12c-2.5-.6-4.7-.2-6.5 1.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 6.5v12" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' },
     { id: 'set', name: '设置', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v2.2M12 18.8V21M4.6 7.5l1.9 1.1M17.5 15.4l1.9 1.1M4.6 16.5l1.9-1.1M17.5 8.6l1.9-1.1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' }
   ];
 
@@ -246,6 +249,7 @@
     if (ui.tab === 'rel') renderRel();
     else if (ui.tab === 'ledger') renderLedger();
     else if (ui.tab === 'cal') renderCal();
+    else if (ui.tab === 'story') renderStory();
     else if (ui.tab === 'set') renderSet();
     else renderMe();
   }
@@ -258,7 +262,7 @@
     var head = pageHead('关系网络',
       c.total + ' 位亲友 · 至亲 ' + c[1] + ' · 亲友 ' + c[2] + ' · 朋友 ' + c[3],
       '<button class="btn ghost" data-act="help">怎么看图</button>' +
-      '<button class="btn" data-act="add-person">添加亲友</button>');
+      '<button class="btn" data-act="add-person">添加成员</button>');
 
     var bar = '<div class="rel-bar">' +
       '<div class="seg">' +
@@ -788,43 +792,217 @@
     });
   }
 
+  /* ---------------- 故事板块 ---------------- */
+  var MOODS = ['热闹', '开心', '温暖', '怀念', '感动', '有趣', '平淡', '难忘'];
+
+  function storySorted() {
+    return (state.stories || []).slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+  }
+  function filteredStories() {
+    var list = storySorted();
+    if (ui.story.pid !== 'all') {
+      list = list.filter(function (s) { return (s.pids || []).indexOf(ui.story.pid) > -1; });
+    }
+    return list;
+  }
+  function storyPeople(s) {
+    return (s.pids || []).map(function (id) { return id === 'me' ? '我' : pname(id); }).filter(function (x) { return x !== '未知'; });
+  }
+
+  function renderStory() {
+    var v = document.getElementById('view-story');
+    var all = storySorted();
+    var list = filteredStories();
+    var head = pageHead('故事', '记下和某些人、某群人经历的事，以及那些有趣的日子',
+      '<button class="btn" data-act="add-story">写故事</button>');
+
+    var moodCount = {};
+    all.forEach(function (s) { if (s.mood) moodCount[s.mood] = (moodCount[s.mood] || 0) + 1; });
+    var stats = '<div class="story-stats">' +
+      '<div><b>' + all.length + '</b><span>篇回忆</span></div>' +
+      '<div><b>' + Object.keys(moodCount).length + '</b><span>种心情</span></div>' +
+      '<div><b>' + (all.length ? all[0].date.slice(0, 4) : '—') + '</b><span>最近记录</span></div>' +
+      '</div>';
+
+    var chips = '<div class="story-filter">' +
+      '<button class="chip' + (ui.story.pid === 'all' ? ' on' : '') + '" data-act="story-pid" data-pid="all">全部</button>' +
+      state.people.map(function (p) {
+        var n = all.filter(function (s) { return (s.pids || []).indexOf(p.id) > -1; }).length;
+        return '<button class="chip' + (ui.story.pid === p.id ? ' on' : '') + '" data-act="story-pid" data-pid="' + p.id + '">' +
+          U.esc(p.name) + (n ? ' ' + n : '') + '</button>';
+      }).join('') + '</div>';
+
+    var rows = '';
+    var curYear = '';
+    list.forEach(function (s) {
+      var y = s.date.slice(0, 4);
+      if (y !== curYear) { rows += '<div class="story-year"><span>' + y + '</span></div>'; curYear = y; }
+      var names = storyPeople(s);
+      var emails = (s.pids || []).slice(0, 5).map(function (id) {
+        var p = person(id);
+        var em = id === 'me' ? (state.me.emoji || '🎁') : (p && p.photo ? '<img class="ava-img" src="' + U.esc(p.photo) + '" alt="">' : (p && p.emoji) || '🙂');
+        return '<span class="story-ava">' + em + '</span>';
+      }).join('');
+      rows += '<button class="story-card" data-act="edit-story" data-sid="' + s.id + '">' +
+        '<div class="story-top"><span class="story-emoji">' + U.esc(s.emoji || '📖') + '</span>' +
+        '<div class="story-hd"><b>' + U.esc(s.title) + '</b>' +
+        '<span>' + U.cnDateFull(s.date) + ' · ' + U.weekday(s.date) + (s.mood ? ' · ' + U.esc(s.mood) : '') + '</span></div></div>' +
+        '<p class="story-text">' + U.esc(s.content || '') + '</p>' +
+        '<div class="story-foot">' +
+        (emails ? '<span class="story-avas">' + emails + '</span><span class="story-names">' + U.esc(names.join('、')) + '</span>' : '<span class="story-names">一个人的日子</span>') +
+        '<span class="story-tags">' + (s.tags || []).map(function (t) { return '<i>' + U.esc(t) + '</i>'; }).join('') + '</span>' +
+        '</div></button>';
+    });
+    if (!list.length) {
+      rows = '<div class="empty">' + (all.length ? '还没有和这位成员相关的故事' : '还没有故事<br>点右上「写故事」记下第一段回忆') +
+        '<br><button class="btn small" data-act="add-story">写第一段故事</button></div>';
+    }
+
+    v.innerHTML = '<div class="page">' + head + stats +
+      '<div class="story-filter-wrap">' + chips + '</div>' +
+      '<div class="story-timeline">' + rows + '</div>' +
+      '<div class="foot-note">人情往来 · v1.2.1<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
+      '</div>';
+  }
+
+  function openStoryForm(sid) {
+    var s = sid ? (state.stories || []).filter(function (x) { return x.id === sid; })[0] : null;
+    var isNew = !s;
+    var picked = s ? (s.pids || []).slice() : [];
+    var body = '<div class="form">' +
+      '<label class="field"><span>标题</span><input class="input" name="title" value="' + U.esc(s ? s.title : '') + '" placeholder="如：那年我们一起过的年"></label>' +
+      '<div class="field-2">' +
+      '<label class="field"><span>日期</span><input class="input" type="date" name="date" value="' + (s ? s.date : U.todayISO()) + '"></label>' +
+      '<label class="field"><span>图标</span><input class="input" name="emoji" maxlength="4" value="' + U.esc(s ? (s.emoji || '📖') : '📖') + '" placeholder="一个表情"></label></div>' +
+      '<label class="field"><span>心情</span><select class="select" name="mood">' +
+      '<option value="">不填</option>' +
+      MOODS.map(function (m) { return '<option' + ((s ? s.mood : '') === m ? ' selected' : '') + '>' + m + '</option>'; }).join('') +
+      '</select></label>' +
+      '<div class="field"><span>和谁有关（可多选，一群人也可以）</span>' +
+      '<div class="spick-people">' +
+      '<button type="button" class="spick' + (picked.indexOf('me') > -1 ? ' on' : '') + '" data-pick="me">🎁 我</button>' +
+      state.people.map(function (p) {
+        return '<button type="button" class="spick' + (picked.indexOf(p.id) > -1 ? ' on' : '') + '" data-pick="' + p.id + '">' + U.esc(p.name) + '</button>';
+      }).join('') +
+      '</div></div>' +
+      '<label class="field"><span>回忆正文</span><textarea class="input story-area" name="content" rows="6" placeholder="那天发生了什么？记下来，免得忘了……">' + U.esc(s ? s.content : '') + '</textarea></label>' +
+      '<label class="field"><span>标签</span><input class="input" name="tags" value="' + U.esc(s ? (s.tags || []).join('、') : '') + '" placeholder="选填，用顿号分隔，如：春节、家人"></label>' +
+      '</div>';
+    var footer = (!isNew ? '<button class="btn ghost danger" data-del="1">删除</button>' : '') +
+      '<button class="btn" data-save="1">保存</button>';
+    var root = openSheet({ title: isNew ? '写一段故事' : '编辑故事', body: body, footer: footer });
+    root.querySelectorAll('.spick').forEach(function (b) {
+      b.addEventListener('click', function () { b.classList.toggle('on'); });
+    });
+    root.querySelector('[data-save]').addEventListener('click', function () {
+      var title = root.querySelector('[name=title]').value.trim();
+      if (!title) return toast('写个标题吧');
+      var pids = [];
+      root.querySelectorAll('.spick.on').forEach(function (b) { pids.push(b.getAttribute('data-pick')); });
+      var data = {
+        title: title,
+        date: root.querySelector('[name=date]').value || U.todayISO(),
+        emoji: root.querySelector('[name=emoji]').value.trim() || '📖',
+        mood: root.querySelector('[name=mood]').value,
+        pids: pids,
+        content: root.querySelector('[name=content]').value.trim(),
+        tags: root.querySelector('[name=tags]').value.split(/[、,，]/).map(function (x) { return x.trim(); }).filter(Boolean)
+      };
+      if (!state.stories) state.stories = [];
+      if (s) Object.assign(s, data);
+      else state.stories.push(Object.assign({ id: U.uid('s_') }, data));
+      save(); closeSheet(); render(); toast('记下来了');
+    });
+    var del = root.querySelector('[data-del]');
+    if (del) del.addEventListener('click', function () {
+      if (!confirm('删除这篇故事？')) return;
+      state.stories = (state.stories || []).filter(function (x) { return x.id !== sid; });
+      save(); closeSheet(); render(); toast('已删除');
+    });
+  }
+
   function renderMe() {
     var v = document.getElementById('view-me');
     var me = state.me;
     var t = allTotals();
     var c = ringCounts();
+    var net = t.in - t.out;
     var wife = me.spouseId ? person(me.spouseId) : null;
     var daysToBd = me.birthday ? U.daysToMD(me.birthday.slice(5)) : null;
+    var age = me.birthday ? U.age(me.birthday) : null;
+    var stories = storySorted();
+    var latestStory = stories[0] || null;
+
+    // 近期事项：未来 60 天内的生日 / 忌日 / 自定义事项
+    var ups = upcoming(60).slice(0, 5);
+    var eventIcon = { birthday: '🎂', memorial: '🕯️', banquet: '🍽️', custom: '📌' };
+    var eventsHtml = ups.length
+      ? ups.map(function (it) {
+          return '<button class="me-event" data-act="tab" data-tab="cal">' +
+            '<span class="me-event-ico">' + (eventIcon[it.type] || '📌') + '</span>' +
+            '<span class="me-event-txt"><b>' + U.esc(it.title) + '</b><em>' + U.esc(it.meta || '') + '</em></span>' +
+            '<span class="me-event-day">' + (it.offset === 0 ? '今天' : it.offset + ' 天后') + '</span>' +
+            '</button>';
+        }).join('')
+      : '<div class="me-empty">近两个月没有待办事项</div>';
+
+    // 最近往来
+    var recent = state.gifts.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).slice(0, 4);
+    var recentHtml = recent.length
+      ? recent.map(function (g) {
+          var who = g.pid === 'me' ? '我' : pname(g.pid);
+          return '<div class="me-recent">' +
+            '<span class="me-recent-ico ' + (g.dir === 'in' ? 'in' : 'out') + '">' + (g.dir === 'in' ? '收' : '送') + '</span>' +
+            '<span class="me-recent-txt"><b>' + U.esc(who) + '</b><em>' + U.esc(g.title || (g.type || '往来')) + ' · ' + g.date.slice(5) + '</em></span>' +
+            '<b class="' + (g.dir === 'in' ? 'c-in' : 'c-out') + '">' + (g.dir === 'in' ? '+' : '−') + U.money(g.amount) + '</b>' +
+            '</div>';
+        }).join('')
+      : '<div class="me-empty">还没有往来记录，点右上「记一笔」开始</div>';
 
     var html = '<div class="page">' +
-      pageHead('我的', '数据保存在 NAS，多设备实时同步', '<button class="btn ghost" data-act="tab" data-tab="set">设置 ⚙</button>') +
+      pageHead('我的', '数据保存在 NAS，多设备实时同步',
+        '<button class="btn ghost" data-act="add-person">添加成员</button>' +
+        '<button class="btn" data-act="add-gift">记一笔</button>') +
       '<div class="me-card">' +
       '<div class="me-top">' +
       '<span class="ava me-ava">' + me.emoji + '<i class="me-ring"></i></span>' +
       '<div class="me-info"><h2>' + U.esc(me.nick || me.name) + '</h2>' +
-      '<p>' + U.esc(me.name) + (me.hometown ? ' · ' + U.esc(me.hometown) : '') + (wife ? ' · 与' + U.esc(wife.name) + '共同记账' : '') + '</p>' +
-      '<span class="me-motto">' + U.esc(me.motto || '') + '</span></div>' +
+      '<p>' + U.esc(me.name) + (age !== null ? ' · ' + age + ' 岁' : '') + (me.hometown ? ' · ' + U.esc(me.hometown) : '') + '</p>' +
+      '<span class="me-motto">' + U.esc(me.motto || '有来有往，记在心里。') + '</span></div>' +
       '<button class="icon-btn" data-act="edit-me">编辑</button>' +
       '</div>' +
       '<div class="me-grid">' +
-      '<div><b>' + c.total + '</b><span>亲友</span></div>' +
+      '<div><b>' + c.total + '</b><span>亲友成员</span></div>' +
       '<div><b>' + t.count + '</b><span>往来笔数</span></div>' +
       '<div><b class="c-in">' + U.money(t.in) + '</b><span>累计收</span></div>' +
       '<div><b class="c-out">' + U.money(t.out) + '</b><span>累计送</span></div>' +
       '</div>' +
+      '<div class="me-net">净往来 <b class="' + (net >= 0 ? 'c-in' : 'c-out') + '">' + (net >= 0 ? '收 ' : '送 ') + U.money(net) + '</b>' +
+      (wife ? '<span class="me-net-wife">与 ' + U.esc(wife.name) + ' 共同经营</span>' : '') + '</div>' +
+      '<div class="me-ringbar">' +
+      '<span title="至亲"><i style="background:var(--red)"></i>至亲 ' + c[1] + '</span>' +
+      '<span title="亲友"><i style="background:var(--gold)"></i>亲友 ' + c[2] + '</span>' +
+      '<span title="朋友"><i style="background:var(--ink-3)"></i>朋友 ' + c[3] + '</span>' +
+      '</div>' +
+      '<button class="me-story-entry" data-act="tab" data-tab="story">' +
+      '<span class="mse-ico">' + U.esc(latestStory ? (latestStory.emoji || '📖') : '📖') + '</span>' +
+      '<span class="mse-txt"><b>' + (latestStory ? U.esc(latestStory.title) : '还没有故事') + '</b>' +
+      '<em>' + (latestStory ? (stories.length + ' 篇回忆 · 最近写于 ' + U.cnDate(latestStory.date)) : '点这里写下第一段回忆') + '</em></span>' +
+      '<span class="mse-go">前往 ›</span></button>' +
       '<div class="me-meta">' +
-      (me.birthday ? '<span>🎂 ' + U.cnDate(me.birthday) + ' · ' + (daysToBd === 0 ? '今天生日' : daysToBd + ' 天后') + '</span>' : '') +
+      (me.birthday ? '<span>🎂 ' + U.cnDate(me.birthday) + (daysToBd === 0 ? ' · 今天生日' : ' · ' + daysToBd + ' 天后') + '</span>' : '') +
       (me.since ? '<span>💍 结婚纪念 ' + U.cnDate(me.since) + '</span>' : '') +
-      (me.phone ? '<span>📱 ' + me.phone + '</span>' : '') +
+      (me.phone ? '<span>📱 ' + U.esc(me.phone) + '</span>' : '') +
+      (me.address ? '<span>📍 ' + U.esc(me.address) + '</span>' : '') +
       '</div></div>' +
 
-      '<div class="sec-title"><span>我的账户</span><em>登录、密码与主题可在设置中管理</em></div>' +
-      '<div class="tile-row">' +
-      '<button class="tile" data-act="tab" data-tab="set"><b>账户与密码</b><em>修改密码、管理成员、退出登录</em></button>' +
-      '<button class="tile" data-act="tab" data-tab="set"><b>主题外观</b><em>五套预设风格，一键切换</em></button>' +
-      '<button class="tile" data-act="tab" data-tab="set"><b>数据设置</b><em>保存路径、备份与恢复</em></button>' +
-      '</div>' +
-      '<div class="foot-note">人情往来 · v1.2.0<br>数据保存在 NAS；换设备或卸载前请先导出备份</div>' +
+      '<div class="sec-title"><span>近期事项</span><em>生日 · 忌日 · 自定义</em></div>' +
+      '<div class="me-list">' + eventsHtml + '</div>' +
+
+      '<div class="sec-title"><span>最近往来</span><em>点「记一笔」记录新的往来</em></div>' +
+      '<div class="me-list">' + recentHtml + '</div>' +
+
+      '<div class="foot-note">人情往来 · v1.2.1<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
@@ -949,7 +1127,7 @@
       '</div>';
     var footer = (isNew ? '' : '<button class="btn ghost danger" data-del="' + pid + '">删除</button>') +
       '<button class="btn" data-save="1">保存</button>';
-    var root = openSheet({ title: isNew ? '添加亲友' : '编辑资料', sub: isNew ? '存下来，礼金和日历都会自动关联' : '', body: body, footer: footer });
+    var root = openSheet({ title: isNew ? '添加成员' : '编辑资料', sub: isNew ? '存下来，礼金和日历都会自动关联' : '', body: body, footer: footer });
     root.querySelector('[data-save]').addEventListener('click', function () {
       var f = root;
       var data = {
@@ -1187,7 +1365,11 @@
     if (act === 'edit-gift') { openGiftForm(t.getAttribute('data-gid')); return; }
     if (act === 'add-event') { closeSheet(); openEventForm(null, t.getAttribute('data-date')); return; }
     if (act === 'edit-event') { openEventForm(t.getAttribute('data-eid')); return; }
+    if (act === 'add-story') { closeSheet(); openStoryForm(null); return; }
+    if (act === 'edit-story') { openStoryForm(t.getAttribute('data-sid')); return; }
+    if (act === 'story-pid') { ui.story.pid = t.getAttribute('data-pid'); renderStory(); return; }
     if (act === 'edit-me') { closeSheet(); openMeForm(); return; }
+    if (act === 'share-center') { if (window.Share) Share.open('ledger'); return; }
     if (act === 'help') { openHelp(); return; }
     if (act === 'lf-dir') { ui.ledger.dir = t.getAttribute('data-dir'); renderLedger(); return; }
     if (act === 'cal-filter') { ui.cal.filter = t.getAttribute('data-ft'); renderCal(); return; }
@@ -1243,7 +1425,7 @@
     if (act === 'import') { importData(); return; }
     if (act === 'reset') {
       if (!confirm('清空后，本机保存的亲友、礼金与日历事项都会删除，确定？')) return;
-      state = { me: state.me, people: [], gifts: [], events: [] };
+      state = { me: state.me, people: [], gifts: [], events: [], stories: [] };
       ui.ledger.pid = 'all'; ui.q = '';
       save(); render(); toast('已清空，开始记自己的吧');
       return;
@@ -1298,6 +1480,8 @@
     });
     try { localStorage.setItem('__fn_t', '1'); localStorage.removeItem('__fn_t'); }
     catch (e) { setTimeout(function () { toast('当前打开方式无法保存数据，建议用应用中心打开'); }, 1200); }
+    if (window.Share) Share.init({ toast: toast, getState: function () { return state; } });
+    if (window.Share && location.hash.indexOf('s=') > -1) Share.openFromHash();
   }
 
   window.App = {
