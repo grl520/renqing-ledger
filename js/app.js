@@ -704,13 +704,13 @@
       '<button class="set-row" data-act="export"><b>导出备份</b><em>生成 JSON 文件</em><span>›</span></button>' +
       '<button class="set-row" data-act="import"><b>导入备份</b><em>从 JSON 恢复</em><span>›</span></button>' +
       '<button class="set-row" data-act="demo"><b>载入示例数据</b><em>看看完整演示</em><span>›</span></button>' +
-      '<button class="set-row danger" data-act="reset"><b>清空并重新开始</b><em>删除全部亲友与礼金</em><span>›</span></button>' +
+      '<button class="set-row danger" data-act="reset"><b>清空并重新开始</b><em>先填自己的信息，再删除全部数据</em><span>›</span></button>' +
       '</div></div>';
 
     var aboutHtml = '<div class="set-panel"><h3><span class="pi">ℹ️</span>关于</h3>' +
       '<p class="hint">人情往来 · 记礼金、看关系、过好每一个该到的日子。<br>' +
       '当前模式：' + ((window.Auth && Auth.isServer && Auth.isServer()) ? 'NAS 多设备同步' : '本地演示') + '<br>' +
-      '版本 v1.2.10</p></div>';
+      '版本 v1.2.11</p></div>';
 
     v.innerHTML = '<div class="page">' + head +
       '<div class="set-grid">' + themeHtml + userHtml + dataHtml + aboutHtml + '</div></div>';
@@ -876,7 +876,7 @@
     v.innerHTML = '<div class="page">' + head + stats +
       '<div class="story-filter-wrap">' + chips + '</div>' +
       '<div class="story-timeline">' + rows + '</div>' +
-      '<div class="foot-note">人情往来 · v1.2.10<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.11<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
       '</div>';
   }
 
@@ -1037,20 +1037,18 @@
       '<span class="ava me-ava">' + me.emoji + '<i class="me-ring"></i></span>' +
       '<div class="me-info"><h2>' + U.esc(me.nick || me.name) + '</h2>' +
       '<p>' + U.esc(me.name) + (age !== null ? ' · ' + age + ' 岁' : '') + (me.hometown ? ' · ' + U.esc(me.hometown) : '') + '</p>' +
-      '<button class="me-motto" data-act="edit-me" title="点击修改个性签名">' + U.esc(me.motto || '有来有往，记在心里。') + '<span class="mm-edit">修改</span></button></div>' +
+      '<button class="me-motto" data-act="edit-me" title="点击修改个性签名">' + U.esc(me.motto || '有来有往，记在心里。') + '</button></div>' +
       '<button class="icon-btn" data-act="edit-me">编辑</button>' +
       '</div>' +
       '<div class="me-stats">' +
       '<div class="ms-col">' +
-      '<div class="ms-item"><span>亲友成员</span><b>' + c.total + '</b></div>' +
-      '<div class="ms-item"><span>往来笔数</span><b>' + t.count + '</b></div>' +
-      '</div>' +
-      '<div class="ms-col">' +
+      '<div class="ms-item"><span>亲朋好友</span><b>' + c.total + '</b></div>' +
       '<div class="ms-item"><i class="ms-dot" style="background:var(--red)"></i><span>至亲</span><b>' + c[1] + '</b></div>' +
       '<div class="ms-item"><i class="ms-dot" style="background:var(--gold)"></i><span>亲友</span><b>' + c[2] + '</b></div>' +
       '<div class="ms-item"><i class="ms-dot" style="background:var(--ink-3)"></i><span>朋友</span><b>' + c[3] + '</b></div>' +
       '</div>' +
       '<div class="ms-col">' +
+      '<div class="ms-item"><span>往来笔数</span><b>' + t.count + '</b></div>' +
       '<div class="ms-item"><span>累计收</span><b class="c-in">' + U.money(t.in) + '</b></div>' +
       '<div class="ms-item"><span>累计送</span><b class="c-out">' + U.money(t.out) + '</b></div>' +
       '<div class="ms-item"><span>净往来</span><b class="' + (net >= 0 ? 'c-in' : 'c-out') + '">' + (net >= 0 ? '收 ' : '送 ') + U.money(net) + '</b></div>' +
@@ -1073,7 +1071,7 @@
       '<div class="me-list">' + storiesHtml + '</div>' +
       moreBtn(stories.length, 'story', '陈年往事') +
 
-      '<div class="foot-note">人情往来 · v1.2.10<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.11<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
@@ -1350,6 +1348,52 @@
     });
   }
 
+  // 清空并重新开始：先填自己的信息，再清空
+  function openResetSheet() {
+    var me = state.me || {};
+    var body = '<div class="form">' +
+      '<p class="form-tip">清空会删除本机保存的全部亲友、往来、日历事项与陈年往事。<br>请先确认自己的信息，清空后从这里重新开始。</p>' +
+      '<div class="field-2">' +
+      '<label class="field"><span>昵称</span><input class="input" name="nick" value="' + U.esc(me.nick || '') + '" placeholder="家里人怎么叫你"></label>' +
+      '<label class="field"><span>姓名</span><input class="input" name="name" value="' + U.esc(me.name || '') + '" placeholder="你的名字"></label></div>' +
+      '<div class="field-2">' +
+      '<label class="field"><span>头像</span><input class="input" name="emoji" maxlength="4" value="' + U.esc(me.emoji || '🎁') + '" placeholder="一个表情"></label>' +
+      '<label class="field"><span>生日</span><input class="input" type="date" name="birthday" value="' + (me.birthday || '') + '"></label></div>' +
+      '<div class="field-2">' +
+      '<label class="field"><span>家乡</span><input class="input" name="hometown" value="' + U.esc(me.hometown || '') + '" placeholder="如：湖南 · 邵阳"></label>' +
+      '<label class="field"><span>所在城市</span><input class="input" name="address" value="' + U.esc(me.address || '') + '" placeholder="如：长沙市岳麓区"></label></div>' +
+      '<label class="field"><span>个性签名</span><input class="input" name="motto" value="' + U.esc(me.motto || '') + '" placeholder="选填，写一句自己的话"></label>' +
+      '</div>';
+    var root = openSheet({
+      title: '清空并重新开始',
+      sub: '先填好自己的信息，再确认清空',
+      body: body,
+      footer: '<button class="btn ghost" data-act="close">取消</button>' +
+        '<button class="btn ghost danger" data-reset="1">确认清空</button>'
+    });
+    root.querySelector('[data-reset]').addEventListener('click', function () {
+      var nick = root.querySelector('[name=nick]').value.trim();
+      var name = root.querySelector('[name=name]').value.trim();
+      if (!nick && !name) { toast('请先填上自己的昵称或姓名'); return; }
+      var newMe = {
+        nick: nick || name,
+        name: name || nick,
+        emoji: root.querySelector('[name=emoji]').value.trim() || '🎁',
+        birthday: root.querySelector('[name=birthday]').value || '',
+        hometown: root.querySelector('[name=hometown]').value.trim(),
+        address: root.querySelector('[name=address]').value.trim(),
+        motto: root.querySelector('[name=motto]').value.trim(),
+        phone: me.phone || '',
+        since: '',
+        spouseId: ''
+      };
+      state = { me: newMe, people: [], gifts: [], events: [], stories: [] };
+      ui.ledger.pid = 'all'; ui.story.pid = 'all'; ui.q = ''; ui.tab = 'me';
+      save(); closeSheet(); render();
+      toast('已清空，从你开始重新记录');
+    });
+  }
+
   function openMeForm() {
     var me = state.me;
     var body = '<div class="form">' +
@@ -1480,13 +1524,7 @@
     if (act === 'data-path') { openPathSheet(); return; }
     if (act === 'export') { exportData(); return; }
     if (act === 'import') { importData(); return; }
-    if (act === 'reset') {
-      if (!confirm('清空后，本机保存的亲友、礼金与日历事项都会删除，确定？')) return;
-      state = { me: state.me, people: [], gifts: [], events: [], stories: [] };
-      ui.ledger.pid = 'all'; ui.q = '';
-      save(); render(); toast('已清空，开始记自己的吧');
-      return;
-    }
+    if (act === 'reset') { openResetSheet(); return; }
     if (act === 'demo') {
       if (!confirm('载入示例数据会覆盖当前内容，确定？')) return;
       state = U.clone(window.SEED);
