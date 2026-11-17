@@ -261,7 +261,6 @@
     var t = allTotals();
     var head = pageHead('关系网络',
       c.total + ' 位亲友 · 至亲 ' + c[1] + ' · 亲友 ' + c[2] + ' · 朋友 ' + c[3],
-      '<button class="btn ghost" data-act="help">怎么看图</button>' +
       '<button class="btn" data-act="add-person">添加成员</button>');
 
     var bar = '<div class="rel-bar">' +
@@ -861,7 +860,7 @@
     v.innerHTML = '<div class="page">' + head + stats +
       '<div class="story-filter-wrap">' + chips + '</div>' +
       '<div class="story-timeline">' + rows + '</div>' +
-      '<div class="foot-note">人情往来 · v1.2.1<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.4<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
       '</div>';
   }
 
@@ -870,7 +869,7 @@
     var isNew = !s;
     var picked = s ? (s.pids || []).slice() : [];
     var body = '<div class="form">' +
-      '<label class="field"><span>标题</span><input class="input" name="title" value="' + U.esc(s ? s.title : '') + '" placeholder="如：那年我们一起过的年"></label>' +
+      '<label class="field"><span>陈年往事</span><input class="input" name="title" value="' + U.esc(s ? s.title : '') + '" placeholder="如：那年我们一起过的年"></label>' +
       '<div class="field-2">' +
       '<label class="field"><span>日期</span><input class="input" type="date" name="date" value="' + (s ? s.date : U.todayISO()) + '"></label>' +
       '<label class="field"><span>图标</span><input class="input" name="emoji" maxlength="4" value="' + U.esc(s ? (s.emoji || '📖') : '📖') + '" placeholder="一个表情"></label></div>' +
@@ -896,7 +895,7 @@
     });
     root.querySelector('[data-save]').addEventListener('click', function () {
       var title = root.querySelector('[name=title]').value.trim();
-      if (!title) return toast('写个标题吧');
+      if (!title) return toast('写个陈年往事吧');
       var pids = [];
       root.querySelectorAll('.spick.on').forEach(function (b) { pids.push(b.getAttribute('data-pick')); });
       var data = {
@@ -1002,7 +1001,7 @@
       '<div class="sec-title"><span>最近往来</span><em>点「记一笔」记录新的往来</em></div>' +
       '<div class="me-list">' + recentHtml + '</div>' +
 
-      '<div class="foot-note">人情往来 · v1.2.1<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.4<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
@@ -1301,19 +1300,6 @@
     });
   }
 
-  /* ---------------- 帮助 ---------------- */
-  function openHelp() {
-    var body = '<div class="help">' +
-      '<p class="help-lead">这张图不是通讯录，而是「谁和你有往来」的关系地图。</p>' +
-      '<div class="help-item"><b>直接关系</b><p>你本人直接认识、直接有礼金往来的人。实线连到你身上。</p></div>' +
-      '<div class="help-item"><b>间接关系</b><p>你不熟，是通过家人或朋友才认识的人。虚线中间会标明「经谁」。比如「邻居刘洋」是「经李伟」认识的。</p></div>' +
-      '<div class="help-item"><b>三个圈层</b><p>至亲＝家人和直系亲属；亲友＝亲戚、家族长辈；朋友＝朋友、同事、邻里。圈子越靠里，往来越密。</p></div>' +
-      '<div class="help-item"><b>放大 / 缩小</b><p>缩到 70% 只看名字和头像，一眼看清全貌；放大到 135% 会显示收送金额、最近一次往来和标签，同时聚焦到至亲与亲友。</p></div>' +
-      '<div class="help-item"><b>夫妻爱心</b><p>夫妻两人会靠在一起，中间的大爱心表示两口子是一户，随礼通常只算一份。</p></div>' +
-      '</div>';
-    openSheet({ title: '怎么看这张关系图', body: body, footer: '<button class="btn" data-act="close">明白了</button>' });
-  }
-
   /* ---------------- 数据导入导出 ---------------- */
   function exportData() {
     var blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
@@ -1370,7 +1356,6 @@
     if (act === 'story-pid') { ui.story.pid = t.getAttribute('data-pid'); renderStory(); return; }
     if (act === 'edit-me') { closeSheet(); openMeForm(); return; }
     if (act === 'share-center') { if (window.Share) Share.open('ledger'); return; }
-    if (act === 'help') { openHelp(); return; }
     if (act === 'lf-dir') { ui.ledger.dir = t.getAttribute('data-dir'); renderLedger(); return; }
     if (act === 'cal-filter') { ui.cal.filter = t.getAttribute('data-ft'); renderCal(); return; }
     if (act === 'cal-move') {
