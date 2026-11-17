@@ -556,7 +556,16 @@ textarea.input { padding: 10px 12px; height: auto; resize: vertical; line-height
 .me-info { flex: 1; min-width: 0; }
 .me-info h2 { font-family: var(--serif); font-size: 22px; letter-spacing: .5px; }
 .me-info p { margin: 3px 0 0; font-size: 12px; color: var(--ink-2); }
-.me-motto { display: block; margin-top: 6px; font-size: 11.5px; color: var(--ink-3); font-family: var(--serif); }
+.me-motto {
+  display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-top: 6px; padding: 0; border: 0; background: none; cursor: pointer;
+  font-size: 11.5px; color: var(--ink-3); font-family: var(--serif);
+  text-align: left; line-height: 1.55;
+}
+.me-motto .mm-edit {
+  flex: none; font-family: var(--sans); font-size: 9.5px; line-height: 14px;
+  padding: 0 5px; border: 1px solid var(--line); border-radius: 20px; color: var(--ink-3);
+}
 .me-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 18px; position: relative; z-index: 1; }
 .me-grid > div { display: flex; flex-direction: column; gap: 1px; }
 .me-grid b { font-family: var(--serif); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -866,31 +875,20 @@ textarea.input { padding: 10px 12px; height: auto; resize: vertical; line-height
 }
 
 /* ================= 我的页：丰富预览 ================= */
-.me-stat-lines {
-  display: flex; flex-direction: column; gap: 8px;
+.me-stats {
+  display: flex; align-items: flex-start;
   margin-top: 16px; position: relative; z-index: 1;
 }
-.me-stat-line {
-  display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap;
-  padding: 9px 0;
-  font-size: 11px; color: var(--ink-2);
+.ms-col { display: flex; flex-direction: column; gap: 7px; padding: 0 13px; min-width: 0; }
+.ms-col:first-child { padding-left: 0; }
+.ms-col + .ms-col { border-left: 1px solid var(--line-2); }
+.ms-item {
+  display: flex; align-items: baseline; gap: 5px;
+  height: 19px; line-height: 19px; white-space: nowrap;
+  font-size: 10.5px; color: var(--ink-3);
 }
-.me-stat-line .sl-label {
-  display: inline-flex; align-items: baseline; gap: 4px;
-  padding-right: 13px; margin-right: 2px; border-right: 1px solid var(--line);
-  font-size: 11px; color: var(--ink-3);
-}
-.me-stat-line .sl-label b { font-family: var(--serif); font-size: 17px; color: var(--ink); font-weight: 600; }
-.me-stat-line .sl-sub { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-.me-stat-line .sl-sub i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-.me-stat-line .sl-sub b { font-family: var(--serif); font-size: 12.5px; font-weight: 600; }
-.me-net {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
-  margin-top: 14px; padding: 10px 0;
-  font-size: 12px; color: var(--ink-2); position: relative; z-index: 1;
-}
-.me-net b { font-family: var(--serif); font-size: 14px; }
-.me-net-wife { margin-left: auto; font-size: 10.5px; color: var(--ink-3); }
+.ms-item b { font-family: var(--serif); font-size: 14.5px; color: var(--ink); font-weight: 600; }
+.ms-item .ms-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; align-self: center; flex: none; }
 .me-ringbar {
   display: flex; gap: 16px; margin-top: 12px; position: relative; z-index: 1;
   font-size: 11px; color: var(--ink-2);

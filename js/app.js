@@ -710,7 +710,7 @@
     var aboutHtml = '<div class="set-panel"><h3><span class="pi">ℹ️</span>关于</h3>' +
       '<p class="hint">人情往来 · 记礼金、看关系、过好每一个该到的日子。<br>' +
       '当前模式：' + ((window.Auth && Auth.isServer && Auth.isServer()) ? 'NAS 多设备同步' : '本地演示') + '<br>' +
-      '版本 v1.2.9</p></div>';
+      '版本 v1.2.10</p></div>';
 
     v.innerHTML = '<div class="page">' + head +
       '<div class="set-grid">' + themeHtml + userHtml + dataHtml + aboutHtml + '</div></div>';
@@ -876,7 +876,7 @@
     v.innerHTML = '<div class="page">' + head + stats +
       '<div class="story-filter-wrap">' + chips + '</div>' +
       '<div class="story-timeline">' + rows + '</div>' +
-      '<div class="foot-note">人情往来 · v1.2.9<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.10<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
       '</div>';
   }
 
@@ -980,7 +980,6 @@
     var t = allTotals();
     var c = ringCounts();
     var net = t.in - t.out;
-    var wife = me.spouseId ? person(me.spouseId) : null;
     var daysToBd = me.birthday ? U.daysToMD(me.birthday.slice(5)) : null;
     var age = me.birthday ? U.age(me.birthday) : null;
     var stories = storySorted();
@@ -1038,24 +1037,25 @@
       '<span class="ava me-ava">' + me.emoji + '<i class="me-ring"></i></span>' +
       '<div class="me-info"><h2>' + U.esc(me.nick || me.name) + '</h2>' +
       '<p>' + U.esc(me.name) + (age !== null ? ' · ' + age + ' 岁' : '') + (me.hometown ? ' · ' + U.esc(me.hometown) : '') + '</p>' +
-      '<span class="me-motto">' + U.esc(me.motto || '有来有往，记在心里。') + '</span></div>' +
+      '<button class="me-motto" data-act="edit-me" title="点击修改个性签名">' + U.esc(me.motto || '有来有往，记在心里。') + '<span class="mm-edit">修改</span></button></div>' +
       '<button class="icon-btn" data-act="edit-me">编辑</button>' +
       '</div>' +
-      '<div class="me-stat-lines">' +
-      '<div class="me-stat-line">' +
-      '<span class="sl-label">亲友成员 <b>' + c.total + '</b></span>' +
-      '<span class="sl-sub"><i style="background:var(--red)"></i>至亲 <b>' + c[1] + '</b></span>' +
-      '<span class="sl-sub"><i style="background:var(--gold)"></i>亲友 <b>' + c[2] + '</b></span>' +
-      '<span class="sl-sub"><i style="background:var(--ink-3)"></i>朋友 <b>' + c[3] + '</b></span>' +
+      '<div class="me-stats">' +
+      '<div class="ms-col">' +
+      '<div class="ms-item"><span>亲友成员</span><b>' + c.total + '</b></div>' +
+      '<div class="ms-item"><span>往来笔数</span><b>' + t.count + '</b></div>' +
       '</div>' +
-      '<div class="me-stat-line">' +
-      '<span class="sl-label">往来笔数 <b>' + t.count + '</b></span>' +
-      '<span class="sl-sub">累计收 <b class="c-in">' + U.money(t.in) + '</b></span>' +
-      '<span class="sl-sub">累计送 <b class="c-out">' + U.money(t.out) + '</b></span>' +
+      '<div class="ms-col">' +
+      '<div class="ms-item"><i class="ms-dot" style="background:var(--red)"></i><span>至亲</span><b>' + c[1] + '</b></div>' +
+      '<div class="ms-item"><i class="ms-dot" style="background:var(--gold)"></i><span>亲友</span><b>' + c[2] + '</b></div>' +
+      '<div class="ms-item"><i class="ms-dot" style="background:var(--ink-3)"></i><span>朋友</span><b>' + c[3] + '</b></div>' +
+      '</div>' +
+      '<div class="ms-col">' +
+      '<div class="ms-item"><span>累计收</span><b class="c-in">' + U.money(t.in) + '</b></div>' +
+      '<div class="ms-item"><span>累计送</span><b class="c-out">' + U.money(t.out) + '</b></div>' +
+      '<div class="ms-item"><span>净往来</span><b class="' + (net >= 0 ? 'c-in' : 'c-out') + '">' + (net >= 0 ? '收 ' : '送 ') + U.money(net) + '</b></div>' +
       '</div>' +
       '</div>' +
-      '<div class="me-net">净往来 <b class="' + (net >= 0 ? 'c-in' : 'c-out') + '">' + (net >= 0 ? '收 ' : '送 ') + U.money(net) + '</b>' +
-      (wife ? '<span class="me-net-wife">与 ' + U.esc(wife.name) + ' 共同经营</span>' : '') + '</div>' +
       ((me.birthday || me.since) ? '<div class="me-meta">' +
       (me.birthday ? '<span>🎂 ' + U.cnDate(me.birthday) + (daysToBd === 0 ? ' · 今天生日' : ' · ' + daysToBd + ' 天后') + '</span>' : '') +
       (me.since ? '<span>💍 结婚纪念 ' + U.cnDate(me.since) + '</span>' : '') +
@@ -1073,7 +1073,7 @@
       '<div class="me-list">' + storiesHtml + '</div>' +
       moreBtn(stories.length, 'story', '陈年往事') +
 
-      '<div class="foot-note">人情往来 · v1.2.9<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.10<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
@@ -1361,7 +1361,7 @@
       '<label class="field"><span>手机号码</span><input class="input" type="tel" name="phone" value="' + U.esc(me.phone || '') + '"></label></div>' +
       '<label class="field"><span>地址</span><input class="input" name="address" value="' + U.esc(me.address || '') + '" placeholder="家庭住址或所在城市"></label>' +
       '<label class="field"><span>家乡</span><input class="input" name="hometown" value="' + U.esc(me.hometown || '') + '"></label>' +
-      '<label class="field"><span>一句话</span><input class="input" name="motto" value="' + U.esc(me.motto || '') + '"></label>' +
+      '<label class="field"><span>个性签名</span><input class="input" name="motto" value="' + U.esc(me.motto || '') + '" placeholder="写一句自己的话，显示在「我的」页顶部"></label>' +
       '</div>';
     var root = openSheet({ title: '编辑我的资料', body: body, footer: '<button class="btn" data-save="1">保存</button>' });
     root.querySelector('[data-save]').addEventListener('click', function () {
