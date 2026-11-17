@@ -7,11 +7,12 @@
   var LS_USERS = 'fn.rq.localusers';
   var LS_SESSION = 'fn.rq.localsession';
 
-  var mode = 'local';           // 'server' | 'local'
+  var mode = 'server';          // 默认按 NAS 服务端处理，探测失败再切 local（避免探测卡住时登录走错模式）
   var serverOK = false;
   var session = null;           // {id, username, name, role, token}
   var doneCb = null;
   var loginTab = 'login';
+  var probeSettled = false;
 
   function apiBase() {
     var b = document.querySelector('base');
@@ -191,35 +192,58 @@
 
   /* ---------------- 初始化 ---------------- */
   function init(done) {
+    doneCb = done;
     applyTheme(savedTheme(), false);
+
+    // 用网关前缀判定运行模式：飞牛网关/直连端口下都有 /api 能力。
+    // 关键是——绝不等待网络探测才渲染登录页，否则真机网关下 ping 挂起会导致黑屏。
+    var base = apiBase();               // 网关非空（如 /app/feiniu-renqing），本地直接打开为空
+    var looksServer = !!base || /^https?:/.test(location.protocol) && location.protocol !== 'file:';
+    mode = looksServer ? 'server' : 'local';
+    serverOK = looksServer;
+
+    // 立即渲染登录页（不依赖任何网络），这是修复黑屏的核心。
+    showLogin(done);
+    hideBootHint();
+
+    var token = null;
+    try { token = localStorage.getItem(TOKEN_KEY); } catch (e) { }
+
+    if (mode === 'local') {
+      // 纯本地打开（file://）：用本地账户恢复；没有则停留在已渲染的登录页
+      if (token && localRestore()) finishLogin();
+      return;
+    }
+
+    // server 模式：会话恢复在后台进行，失败/超时都保持登录页（已渲染）
+    if (!token) return;
     var probe;
     try {
-      probe = fetch(apiUrl('/api/ping'), { cache: 'no-store' });
+      probe = fetch(apiUrl('/api/auth/session'), {
+        headers: headers(), cache: 'no-store'
+      });
     } catch (e) {
       probe = Promise.reject(new Error('no api'));
     }
-    probe.then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('bad')); })
-      .then(function () {
-        mode = 'server'; serverOK = true;
-        var token;
-        try { token = localStorage.getItem(TOKEN_KEY); } catch (e) { }
-        if (!token) return showLogin(done);
-        req('/api/auth/session', 'GET', null, function (res) {
-          if (res && res.ok && res.user) {
-            session = Object.assign(res.user, { token: token });
-            if (res.theme) applyTheme(res.theme, false);
-            finishLogin();
-          } else {
-            try { localStorage.removeItem(TOKEN_KEY); } catch (e) { }
-            showLogin(done);
-          }
-        });
+    var timeout = new Promise(function (_, reject) {
+      setTimeout(function () { reject(new Error('timeout')); }, 5000);
+    });
+    Promise.race([probe, timeout])
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('bad')); })
+      .then(function (res) {
+        if (res && res.ok && res.user) {
+          session = Object.assign(res.user, { token: token });
+          if (res.theme) applyTheme(res.theme, false);
+          finishLogin();
+        } else {
+          try { localStorage.removeItem(TOKEN_KEY); } catch (e) { }
+        }
       })
-      .catch(function () {
-        mode = 'local'; serverOK = false;
-        if (localRestore()) finishLogin();
-        else showLogin(done);
-      });
+      .catch(function () { /* 会话校验失败/超时：保持登录页，用户可重新登录 */ });
+  }
+  function hideBootHint() {
+    var el = document.getElementById('bootHint');
+    if (el) el.style.display = 'none';
   }
 
   /* ---------------- 账户管理 API ---------------- */
