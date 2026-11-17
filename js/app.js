@@ -710,7 +710,7 @@
     var aboutHtml = '<div class="set-panel"><h3><span class="pi">ℹ️</span>关于</h3>' +
       '<p class="hint">人情往来 · 记礼金、看关系、过好每一个该到的日子。<br>' +
       '当前模式：' + ((window.Auth && Auth.isServer && Auth.isServer()) ? 'NAS 多设备同步' : '本地演示') + '<br>' +
-      '版本 v1.2.8</p></div>';
+      '版本 v1.2.9</p></div>';
 
     v.innerHTML = '<div class="page">' + head +
       '<div class="set-grid">' + themeHtml + userHtml + dataHtml + aboutHtml + '</div></div>';
@@ -876,7 +876,7 @@
     v.innerHTML = '<div class="page">' + head + stats +
       '<div class="story-filter-wrap">' + chips + '</div>' +
       '<div class="story-timeline">' + rows + '</div>' +
-      '<div class="foot-note">人情往来 · v1.2.8<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.9<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
       '</div>';
   }
 
@@ -989,7 +989,7 @@
     function moreBtn(total, tab, label) {
       if (total <= 3) return '';
       return '<button class="me-more" data-act="tab" data-tab="' + tab + '">' +
-        '查看全部 ' + total + ' 条 · 前往' + label +
+        '前往' + label + '查看全部' +
         '<span>›</span></button>';
     }
 
@@ -1073,7 +1073,7 @@
       '<div class="me-list">' + storiesHtml + '</div>' +
       moreBtn(stories.length, 'story', '陈年往事') +
 
-      '<div class="foot-note">人情往来 · v1.2.8<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.9<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
