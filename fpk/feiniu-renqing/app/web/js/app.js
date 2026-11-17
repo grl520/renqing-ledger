@@ -60,11 +60,20 @@
     return href.replace(/\/$/, '');
   }
   function apiUrl(p) { return apiBase() + p; }
+  // 统一带上登录令牌；无服务端或未登录时不额外处理（后端会返回 401）
+  function authOpts(opts) {
+    opts = opts || {};
+    var h = opts.headers || {};
+    if (window.Auth && Auth.headers) h = Auth.headers(h);
+    opts.headers = h;
+    return opts;
+  }
+  function apiFetch(p, opts) { return fetch(apiUrl(p), authOpts(opts)); }
 
   function pushRemote() {
     if (!apiOK) return;
     try {
-      fetch(apiUrl('/api/state'), {
+      apiFetch('/api/state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(state)
@@ -81,7 +90,7 @@
   }
   function pullRemote(showTip) {
     if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
-    fetch(apiUrl('/api/state'), { cache: 'no-store' })
+    apiFetch('/api/state', { cache: 'no-store' })
       .then(function (r) { if (!r.ok) throw new Error('no api'); return r.json(); })
       .then(function (remote) {
         apiOK = true;
@@ -156,7 +165,7 @@
     if (file.size > 6 * 1024 * 1024) { toast('图片请小于 6MB'); return; }
     var reader = new FileReader();
     reader.onload = function () {
-      fetch(apiUrl('/api/avatar/' + encodeURIComponent(pid)), {
+      apiFetch('/api/avatar/' + encodeURIComponent(pid), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: reader.result })
       }).then(function (r) { return r.json(); }).then(function (res) {
@@ -196,7 +205,22 @@
     { id: 'rel', name: '关系', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.6"/><circle cx="5" cy="18" r="2.6"/><circle cx="19" cy="18" r="2.6"/><path d="M12 7.6v3.2M10.2 12.6 6.6 16M13.8 12.6 17.4 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
     { id: 'ledger', name: '礼金', icon: '<svg viewBox="0 0 24 24"><path d="M5 4.5h11.5A2.5 2.5 0 0 1 19 7v12.5H7A2 2 0 0 1 5 17.5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 9h7M8.5 12.5h4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
     { id: 'cal', name: '日历', icon: '<svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 10h16M8.5 4v3.2M15.5 4v3.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
-    { id: 'me', name: '我的', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 19.5c1.2-3.4 3.7-5 6.5-5s5.3 1.6 6.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' }
+    { id: 'me', name: '我的', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 19.5c1.2-3.4 3.7-5 6.5-5s5.3 1.6 6.5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' },
+    { id: 'set', name: '设置', icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v2.2M12 18.8V21M4.6 7.5l1.9 1.1M17.5 15.4l1.9 1.1M4.6 16.5l1.9-1.1M17.5 8.6l1.9-1.1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' }
+  ];
+
+  /* 五套预设主题 */
+  var THEMES = [
+    { id: 'warm', name: '暖白', desc: '米白暖红 · 默认',
+      paper: '#F6F7FA', card: '#FFFFFF', ink: '#1F2633', red: '#E34C46', gold: '#DFA63C' },
+    { id: 'night', name: '墨夜', desc: '深色护眼 · 沉静',
+      paper: '#161B23', card: '#232A35', ink: '#E8EDF4', red: '#F0736B', gold: '#E0AE55' },
+    { id: 'bamboo', name: '青竹', desc: '清新竹绿 · 自然',
+      paper: '#F3F7F2', card: '#FFFFFF', ink: '#20362B', red: '#3F9E72', gold: '#C99B3E' },
+    { id: 'ocean', name: '藏蓝', desc: '海蓝清爽 · 理性',
+      paper: '#F2F6FB', card: '#FFFFFF', ink: '#1D3149', red: '#E0645E', gold: '#D2A344' },
+    { id: 'plum', name: '雅紫', desc: '淡紫雅致 · 温柔',
+      paper: '#F8F5FB', card: '#FFFFFF', ink: '#332A45', red: '#C4588B', gold: '#C79A4C' }
   ];
 
   function buildNav() {
@@ -222,6 +246,7 @@
     if (ui.tab === 'rel') renderRel();
     else if (ui.tab === 'ledger') renderLedger();
     else if (ui.tab === 'cal') renderCal();
+    else if (ui.tab === 'set') renderSet();
     else renderMe();
   }
 
@@ -233,7 +258,6 @@
     var head = pageHead('关系网络',
       c.total + ' 位亲友 · 至亲 ' + c[1] + ' · 亲友 ' + c[2] + ' · 朋友 ' + c[3],
       '<button class="btn ghost" data-act="help">怎么看图</button>' +
-      '<button class="btn ghost" data-act="share" data-type="net">分享</button>' +
       '<button class="btn" data-act="add-person">添加亲友</button>');
 
     var bar = '<div class="rel-bar">' +
@@ -364,7 +388,6 @@
 
     var head = pageHead('礼金台账',
       RANGE_LABEL[ui.ledger.range] + ' ' + list.length + ' 笔 · 净往来 ' + (tin - tout >= 0 ? '+' : '−') + U.money(Math.abs(tin - tout)),
-      '<button class="btn ghost" data-act="share" data-type="ledger">分享</button>' +
       '<button class="btn" data-act="add-gift">记一笔</button>');
 
     var stats = '<div class="stat-row">' +
@@ -472,7 +495,6 @@
 
     var head = pageHead('人情日历',
       '自动同步 ' + autoCount + ' 位亲友的生日与忌日 · 也可自己加事项',
-      '<button class="btn ghost" data-act="share" data-type="cal">分享</button>' +
       '<button class="btn" data-act="add-event">加事项</button>');
 
     var chips = '<div class="filter-bar"><div class="seg small">' +
@@ -569,7 +591,7 @@
       root.querySelector('.path-box').innerHTML = '<div class="path-bad">当前是本地打开模式，没有 NAS 路径。<br>请在 NAS 上通过应用图标打开后再设置。</div>';
       return;
     }
-    fetch(apiUrl('/api/path')).then(function (r) { return r.json(); }).then(function (info) {
+    apiFetch('/api/path').then(function (r) { return r.json(); }).then(function (info) {
       var box = root.querySelector('.path-box');
       if (!info || !info.dataDir) { box.innerHTML = '<div class="path-bad">读取失败</div>'; return; }
       var opts = (info.available || []).filter(function (d) { return d !== info.dataDir; });
@@ -593,7 +615,7 @@
       box.querySelector('#pathSave').addEventListener('click', function () {
         var dir = box.querySelector('#pathInput').value.trim();
         var btn = this; btn.disabled = true; btn.textContent = '迁移中…';
-        fetch(apiUrl('/api/path'), {
+        apiFetch('/api/path', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ dataDir: dir })
         }).then(function (r) { return r.json(); }).then(function (res) {
@@ -610,9 +632,160 @@
   function refreshPathHint() {
     var el = document.getElementById('pathHint');
     if (!el || !apiOK) return;
-    fetch(apiUrl('/api/path')).then(function (r) { return r.json(); }).then(function (info) {
+    apiFetch('/api/path').then(function (r) { return r.json(); }).then(function (info) {
       if (info && info.dataDir) el.textContent = info.dataDir;
     }).catch(function () { });
+  }
+
+  /* ---------------- 设置页 ---------------- */
+  function themeCard(t, cur) {
+    return '<button class="theme-card' + (cur === t.id ? ' on' : '') + '" data-act="set-theme" data-theme="' + t.id + '">' +
+      '<div class="theme-preview" style="background:' + t.paper + '">' +
+      '<div class="tp-head"><span class="tp-mark" style="background:linear-gradient(145deg,' + t.red + ',' + t.gold + ')"></span>' +
+      '<span class="tp-line" style="background:' + t.ink + ';opacity:.7"></span></div>' +
+      '<span class="tp-line short" style="background:' + t.ink + ';opacity:.35"></span>' +
+      '<div class="tp-cards"><i class="tp-card" style="background:' + t.card + ';border:1px solid ' + t.ink + '22"></i>' +
+      '<i class="tp-card" style="background:' + t.card + ';border:1px solid ' + t.ink + '22"></i>' +
+      '<i class="tp-card" style="background:' + t.red + ';opacity:.85"></i></div></div>' +
+      '<div class="theme-name">' + t.name + '<span class="tick">' + (cur === t.id ? '✓' : '') + '</span></div>' +
+      '<div class="theme-desc">' + t.desc + '</div></button>';
+  }
+
+  function renderSet() {
+    var v = document.getElementById('view-set');
+    var cur = (window.Auth && Auth.savedTheme) ? Auth.savedTheme() : 'warm';
+    var u = (window.Auth && Auth.user) ? Auth.user() : null;
+    var admin = !!(window.Auth && Auth.isAdmin && Auth.isAdmin());
+    var head = pageHead('设置', '账户、外观与数据都在这里', '');
+
+    // 账户面板
+    var userHtml = '<div class="set-panel"><h3><span class="pi">👤</span>账户</h3>' +
+      '<p class="hint">' + (admin ? '你是管理员，可以新增和管理账户。' : '你使用共享账本，可修改自己的密码与主题。') + '</p>' +
+      '<div class="acct-card"><span class="ava">' + U.esc((u && (u.name || u.username) || '我').slice(0, 1)) + '</span>' +
+      '<div class="acct-info"><b>' + U.esc((u && u.name) || '我') +
+      '<i class="role-badge' + (admin ? '' : ' member') + '">' + (admin ? '管理员' : '成员') + '</i></b>' +
+      '<em>' + (u ? '@' + U.esc(u.username) : '本地用户') + '</em></div></div>' +
+      '<div class="acct-actions">' +
+      '<button class="btn ghost" data-act="change-pwd">修改密码</button>' +
+      '<button class="btn ghost danger" data-act="logout">退出登录</button></div>';
+    if (admin) {
+      userHtml += '<div class="user-manage" id="userManage">' +
+        '<div class="user-manage-head"><b>账户管理</b><button class="btn tiny" data-act="add-user">＋ 新增账户</button></div>' +
+        '<div id="userList"><div class="dp-empty">加载中…</div></div>' +
+        '<div class="switch-row"><span>允许自行注册</span><div class="switch" id="regSwitch" data-act="toggle-register"></div></div>' +
+        '</div>';
+    }
+    userHtml += '</div>';
+
+    // 主题面板
+    var themeHtml = '<div class="set-panel"><h3><span class="pi">🎨</span>主题外观</h3>' +
+      '<p class="hint">选择喜欢的风格，设置会自动保存并在你的设备上生效。</p>' +
+      '<div class="theme-grid">' + THEMES.map(function (t) { return themeCard(t, cur); }).join('') + '</div></div>';
+
+    // 数据面板
+    var dataHtml = '<div class="set-panel"><h3><span class="pi">💾</span>数据</h3>' +
+      '<p class="hint">账本保存在 NAS，多设备实时同步。换设备或卸载前请先导出备份。</p>' +
+      '<div class="set-list">' +
+      '<button class="set-row" data-act="data-path"><b>数据保存路径</b><em id="pathHint">点击查看详情与切换</em><span>›</span></button>' +
+      '<button class="set-row" data-act="export"><b>导出备份</b><em>生成 JSON 文件</em><span>›</span></button>' +
+      '<button class="set-row" data-act="import"><b>导入备份</b><em>从 JSON 恢复</em><span>›</span></button>' +
+      '<button class="set-row" data-act="demo"><b>载入示例数据</b><em>看看完整演示</em><span>›</span></button>' +
+      '<button class="set-row danger" data-act="reset"><b>清空并重新开始</b><em>删除全部亲友与礼金</em><span>›</span></button>' +
+      '</div></div>';
+
+    var aboutHtml = '<div class="set-panel"><h3><span class="pi">ℹ️</span>关于</h3>' +
+      '<p class="hint">人情往来 · 记礼金、看关系、过好每一个该到的日子。<br>' +
+      '当前模式：' + ((window.Auth && Auth.isServer && Auth.isServer()) ? 'NAS 多设备同步' : '本地演示') + '<br>' +
+      '版本 v1.2.0</p></div>';
+
+    v.innerHTML = '<div class="page">' + head +
+      '<div class="set-grid">' + themeHtml + userHtml + dataHtml + aboutHtml + '</div></div>';
+
+    refreshPathHint();
+    if (admin) loadUserList();
+  }
+
+  function loadUserList() {
+    var box = document.getElementById('userList');
+    if (!box || !window.Auth) return;
+    Auth.listUsers(function (res) {
+      if (!box.isConnected) return;
+      if (!res || !res.ok) { box.innerHTML = '<div class="dp-empty">加载失败</div>'; return; }
+      var sw = document.getElementById('regSwitch');
+      if (sw) sw.classList.toggle('on', !!res.allowRegister);
+      var me = Auth.user();
+      box.innerHTML = (res.users || []).map(function (x) {
+        var isAdmin = x.role === 'admin';
+        return '<div class="user-line"><div class="ul-name"><b>' + U.esc(x.name || x.username) + '</b>' +
+          '<em>@' + U.esc(x.username) + ' · ' + (isAdmin ? '管理员' : '成员') + '</em></div>' +
+          (x.id === (me && me.id) ? '<span class="role-badge' + (isAdmin ? '' : ' member') + '">我</span>' :
+            '<button class="ul-btn gray" data-act="reset-user" data-uid="' + x.id + '">重置密码</button>' +
+            '<button class="ul-btn" data-act="del-user" data-uid="' + x.id + '">删除</button>') +
+          '</div>';
+      }).join('');
+    });
+  }
+
+  function openAddUser() {
+    var body = '<div class="form">' +
+      '<label class="field"><span>账号（3-20 位字母数字下划线）</span><input class="input" name="username" placeholder="如：zhangsan"></label>' +
+      '<label class="field"><span>显示名称</span><input class="input" name="name" placeholder="怎么称呼"></label>' +
+      '<label class="field"><span>初始密码（至少 6 位）</span><input class="input" type="text" name="password" placeholder="设置初始密码"></label>' +
+      '<label class="field"><span>角色</span><select class="select" name="role"><option value="member">成员</option><option value="admin">管理员</option></select></label>' +
+      '</div>';
+    var root = openSheet({ title: '新增账户', sub: '创建后对方即可用此账号登录', body: body,
+      footer: '<button class="btn" data-save="1">创建账户</button>' });
+    root.querySelector('[data-save]').addEventListener('click', function () {
+      var data = {
+        username: root.querySelector('[name=username]').value.trim(),
+        name: root.querySelector('[name=name]').value.trim(),
+        password: root.querySelector('[name=password]').value,
+        role: root.querySelector('[name=role]').value
+      };
+      if (!data.username || !data.password) return toast('账号和密码都要填');
+      var btn = this; btn.disabled = true;
+      Auth.addUser(data, function (res) {
+        btn.disabled = false;
+        if (!res.ok) return toast(res.msg || '创建失败');
+        closeSheet(); toast('账户已创建'); loadUserList();
+      });
+    });
+  }
+
+  function openChangePwd() {
+    var body = '<div class="form">' +
+      '<label class="field"><span>原密码</span><input class="input" type="password" name="old" placeholder="当前密码"></label>' +
+      '<label class="field"><span>新密码（至少 6 位）</span><input class="input" type="password" name="fresh" placeholder="新密码"></label>' +
+      '<label class="field"><span>确认新密码</span><input class="input" type="password" name="fresh2" placeholder="再输一次"></label>' +
+      '</div>';
+    var root = openSheet({ title: '修改密码', body: body, footer: '<button class="btn" data-save="1">保存</button>' });
+    root.querySelector('[data-save]').addEventListener('click', function () {
+      var old = root.querySelector('[name=old]').value;
+      var fresh = root.querySelector('[name=fresh]').value;
+      var fresh2 = root.querySelector('[name=fresh2]').value;
+      if (fresh !== fresh2) return toast('两次新密码不一致');
+      if (fresh.length < 6) return toast('新密码至少 6 位');
+      Auth.changePassword(old, fresh, function (res) {
+        if (!res.ok) return toast(res.msg || '修改失败');
+        closeSheet(); toast('密码已更新');
+      });
+    });
+  }
+
+  function openResetUser(uid, name) {
+    var body = '<div class="form">' +
+      '<p class="opt-note">为「' + U.esc(name) + '」设置新密码，设置后原密码立即失效。</p>' +
+      '<label class="field"><span>新密码（至少 6 位）</span><input class="input" type="text" name="pw" placeholder="新密码"></label>' +
+      '</div>';
+    var root = openSheet({ title: '重置密码', body: body, footer: '<button class="btn" data-save="1">重置</button>' });
+    root.querySelector('[data-save]').addEventListener('click', function () {
+      var pw = root.querySelector('[name=pw]').value;
+      if (pw.length < 6) return toast('密码至少 6 位');
+      Auth.resetPassword(uid, pw, function (res) {
+        if (!res.ok) return toast(res.msg || '重置失败');
+        closeSheet(); toast('密码已重置'); loadUserList();
+      });
+    });
   }
 
   function renderMe() {
@@ -624,7 +797,7 @@
     var daysToBd = me.birthday ? U.daysToMD(me.birthday.slice(5)) : null;
 
     var html = '<div class="page">' +
-      pageHead('我的', '数据保存在 NAS，多设备实时同步', '<button class="btn ghost" data-act="share-center">分享中心</button>') +
+      pageHead('我的', '数据保存在 NAS，多设备实时同步', '<button class="btn ghost" data-act="tab" data-tab="set">设置 ⚙</button>') +
       '<div class="me-card">' +
       '<div class="me-top">' +
       '<span class="ava me-ava">' + me.emoji + '<i class="me-ring"></i></span>' +
@@ -645,22 +818,13 @@
       (me.phone ? '<span>📱 ' + me.phone + '</span>' : '') +
       '</div></div>' +
 
-      '<div class="sec-title"><span>分享</span><em>选择性把台账或关系分享给家人</em></div>' +
+      '<div class="sec-title"><span>我的账户</span><em>登录、密码与主题可在设置中管理</em></div>' +
       '<div class="tile-row">' +
-      '<button class="tile" data-act="share" data-type="ledger"><b>礼金台账</b><em>按类型、时间、人员筛选</em></button>' +
-      '<button class="tile" data-act="share" data-type="net"><b>人际关系</b><em>圈层与往来概览</em></button>' +
-      '<button class="tile" data-act="share" data-type="people"><b>人员信息</b><em>勾选亲友档案</em></button>' +
+      '<button class="tile" data-act="tab" data-tab="set"><b>账户与密码</b><em>修改密码、管理成员、退出登录</em></button>' +
+      '<button class="tile" data-act="tab" data-tab="set"><b>主题外观</b><em>五套预设风格，一键切换</em></button>' +
+      '<button class="tile" data-act="tab" data-tab="set"><b>数据设置</b><em>保存路径、备份与恢复</em></button>' +
       '</div>' +
-
-      '<div class="sec-title"><span>数据</span><em>建议每月导出一次备份</em></div>' +
-      '<div class="set-list">' +
-      '<button class="set-row" data-act="data-path"><b>数据保存路径</b><em id="pathHint">点击查看详情与切换</em><span>›</span></button>' +
-      '<button class="set-row" data-act="export"><b>导出备份</b><em>生成 JSON 文件</em><span>›</span></button>' +
-      '<button class="set-row" data-act="import"><b>导入备份</b><em>从 JSON 恢复</em><span>›</span></button>' +
-      '<button class="set-row" data-act="demo"><b>载入示例数据</b><em>看看完整演示</em><span>›</span></button>' +
-      '<button class="set-row danger" data-act="reset"><b>清空并重新开始</b><em>删除本机全部亲友与礼金</em><span>›</span></button>' +
-      '</div>' +
-      '<div class="foot-note">人情往来 · v3<br>数据保存在 NAS；换设备或卸载前请先导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.0<br>数据保存在 NAS；换设备或卸载前请先导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
@@ -715,8 +879,7 @@
       title: '',
       cls: 'person-sheet',
       body: body,
-      footer: '<button class="btn ghost" data-act="share-person" data-pid="' + p.id + '">分享档案</button>' +
-        '<button class="btn ghost" data-act="edit-person" data-pid="' + p.id + '">编辑</button>' +
+      footer: '<button class="btn ghost" data-act="edit-person" data-pid="' + p.id + '">编辑</button>' +
         '<button class="btn" data-act="add-gift" data-pid="' + p.id + '">记一笔</button>'
     });
   }
@@ -737,8 +900,7 @@
       '</div>';
     openSheet({
       title: '', cls: 'person-sheet', body: body,
-      footer: '<button class="btn ghost" data-act="share" data-type="people">分享我的信息</button>' +
-        '<button class="btn" data-act="edit-me">编辑资料</button>'
+      footer: '<button class="btn" data-act="edit-me">编辑资料</button>'
     });
   }
 
@@ -1045,13 +1207,37 @@
       if (ds.slice(0, 7) !== ui.cal.ym) ui.cal.ym = ds.slice(0, 7);
       renderCal(); return;
     }
-    if (act === 'share') {
-      var stype = t.getAttribute('data-type') || 'ledger';
-      var sopts = stype === 'ledger' ? { dir: ui.ledger.dir, range: ui.ledger.range, pid: ui.ledger.pid } : null;
-      Share.open(stype, sopts); return;
+    if (act === 'set-theme') {
+      var tid = t.getAttribute('data-theme');
+      if (window.Auth) Auth.applyTheme(tid, true);
+      renderSet(); toast('主题已切换'); return;
     }
-    if (act === 'share-center') { Share.open('ledger'); return; }
-    if (act === 'share-person') { Share.open('people', { pids: [t.getAttribute('data-pid')] }); return; }
+    if (act === 'change-pwd') { openChangePwd(); return; }
+    if (act === 'add-user') { if (Auth.isAdmin()) openAddUser(); return; }
+    if (act === 'reset-user') {
+      var uid = t.getAttribute('data-uid');
+      var box = document.querySelector('[data-uid="' + uid + '"]');
+      var nm = box ? (box.closest('.user-line').querySelector('.ul-name b').textContent) : '该用户';
+      openResetUser(uid, nm); return;
+    }
+    if (act === 'del-user') {
+      var did = t.getAttribute('data-uid');
+      if (!confirm('确定删除这个账户？该账户将无法再登录。')) return;
+      Auth.deleteUser(did, function (res) {
+        if (!res.ok) return toast(res.msg || '删除失败');
+        toast('账户已删除'); loadUserList();
+      });
+      return;
+    }
+    if (act === 'toggle-register') {
+      var on = !t.classList.contains('on');
+      Auth.setAllowRegister(on, function (res) {
+        if (!res.ok) return toast(res.msg || '设置失败');
+        t.classList.toggle('on', on); toast(on ? '已允许自助注册' : '已关闭自助注册');
+      });
+      return;
+    }
+    if (act === 'logout') { Auth.logout(); return; }
     if (act === 'data-path') { openPathSheet(); return; }
     if (act === 'export') { exportData(); return; }
     if (act === 'import') { importData(); return; }
@@ -1086,6 +1272,16 @@
 
   /* ---------------- 启动 ---------------- */
   function boot() {
+    // 先经过登录门禁，再初始化应用
+    if (window.Auth && Auth.init) {
+      Auth.init(startApp);
+    } else {
+      startApp();
+    }
+  }
+  function startApp() {
+    var app = document.getElementById('app');
+    if (app) app.classList.remove('app-hidden');
     state = loadState();
     var now = new Date();
     ui.cal.ym = now.getFullYear() + '-' + U.pad(now.getMonth() + 1);
@@ -1102,8 +1298,6 @@
     });
     try { localStorage.setItem('__fn_t', '1'); localStorage.removeItem('__fn_t'); }
     catch (e) { setTimeout(function () { toast('当前打开方式无法保存数据，建议用应用中心打开'); }, 1200); }
-    if (window.Share) Share.init({ toast: toast, getState: function () { return state; } });
-    if (window.Share && location.hash.indexOf('s=') > -1) Share.openFromHash();
   }
 
   window.App = {

@@ -1,7 +1,7 @@
 appname               = feiniu-renqing
-version               = 1.1.1
+version               = 1.2.0
 display_name          = 人情往来
-desc                  = 记礼金、看关系、过好每一个该到的日子。生日忌日自动进日历，礼金台账可按人按时间分享。
+desc                  = 记礼金、看关系、过好每一个该到的日子。生日忌日自动进日历，支持账户登录与多套主题。
 platform              = all
 source                = thirdparty
 maintainer            = 人情往来
@@ -12,4 +12,4 @@ ctl_stop              = true
 os_min_version        = 1.0.0
 desktop_uidir         = ui
 desktop_applaunchname = feiniu-renqing.Application
-changelog             = 1.1.1 修复飞牛网关环境下样式不加载问题（CSS 内联）；1.1.0 接入统一网关、全新界面、圈层筛选、照片手机地址、自定义数据路径。
+changelog             = 1.2.0 新增账户登录（自助注册/管理员新增）、设置中心、五套主题、移除分享入口；1.1.1 修复网关样式不加载（CSS 内联）；1.1.0 接入统一网关、全新界面、圈层筛选、照片手机地址、自定义数据路径。

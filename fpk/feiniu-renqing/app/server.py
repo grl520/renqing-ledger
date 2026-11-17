@@ -11,10 +11,13 @@
 头像存到数据目录下的 avatars/。
 """
 import base64
+import hashlib
+import hmac
 import json
 import mimetypes
 import os
 import re
+import secrets
 import socket
 import socketserver
 import sys
@@ -33,9 +36,79 @@ GATE_PREFIX = ((os.environ.get("FNNAS_GATEWAY_PREFIX", "")
                 or os.environ.get("GATEWAY_PREFIX", "")) or "").rstrip("/")
 STATE_NAME = "state.json"
 PATH_CONF = "path.json"
+AUTH_NAME = "users.json"
+TOKEN_NAME = "tokens.json"
+SETTINGS_NAME = "settings.json"
 MAX_UPLOAD = 6 * 1024 * 1024
+TOKEN_TTL = 30 * 24 * 3600
 
 ALLOWED_IMG = {"image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp"}
+
+
+# ---------- 账户 ----------
+def auth_file():
+    return os.path.join(VAR, AUTH_NAME)
+
+
+def token_file():
+    return os.path.join(VAR, TOKEN_NAME)
+
+
+def settings_file():
+    return os.path.join(VAR, SETTINGS_NAME)
+
+
+def hash_pw(pw):
+    salt = secrets.token_hex(16)
+    dk = hashlib.pbkdf2_hmac("sha256", pw.encode("utf-8"), salt.encode("utf-8"), 120000)
+    return salt + "$" + dk.hex()
+
+
+def verify_pw(pw, stored):
+    try:
+        salt, digest = stored.split("$", 1)
+        dk = hashlib.pbkdf2_hmac("sha256", pw.encode("utf-8"), salt.encode("utf-8"), 120000)
+        return hmac.compare_digest(dk.hex(), digest)
+    except Exception:
+        return False
+
+
+def load_users():
+    try:
+        with open(auth_file(), "r", encoding="utf-8") as f:
+            d = json.load(f)
+        if isinstance(d, dict) and isinstance(d.get("users"), list):
+            return d
+    except Exception:
+        pass
+    d = {
+        "users": [{
+            "id": "admin", "username": "admin", "name": "管理员",
+            "role": "admin", "pass": hash_pw("admin123")
+        }],
+        "allowRegister": True
+    }
+    save_users(d)
+    return d
+
+
+def save_users(d):
+    atomic_write_json(auth_file(), d)
+
+
+def load_tokens():
+    try:
+        with open(token_file(), "r", encoding="utf-8") as f:
+            d = json.load(f)
+        if isinstance(d, dict):
+            return {k: v for k, v in d.items() if v.get("exp", 0) > time.time()}
+    except Exception:
+        pass
+    return {}
+
+
+def public_user(u):
+    return {k: u.get(k) for k in ("id", "username", "name", "role", "theme") if k in u}
 
 
 def data_dir():
@@ -147,10 +220,212 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception:
             pass
 
+    # ---------- 账户鉴权 ----------
+    def _token_from_request(self):
+        h = self.headers.get("X-Auth-Token", "")
+        return h.strip()
+
+    def _current_user(self):
+        tok = self._token_from_request()
+        if not tok:
+            return None
+        rec = load_tokens().get(tok)
+        if not rec:
+            return None
+        for u in load_users()["users"]:
+            if u.get("id") == rec.get("uid"):
+                return u
+        return None
+
+    def _issue_token(self, uid):
+        tok = secrets.token_urlsafe(32)
+        tokens = load_tokens()
+        tokens[tok] = {"uid": uid, "exp": int(time.time()) + TOKEN_TTL}
+        atomic_write_json(token_file(), tokens)
+        return tok
+
+    def _auth_api(self, path, method):
+        # 登录
+        if path == "/api/auth/login" and method == "POST":
+            try:
+                b = json.loads(self._body().decode("utf-8"))
+                username = str(b.get("username", "")).strip()
+                password = str(b.get("password", ""))
+            except Exception:
+                return self._json({"ok": False, "msg": "请求无效"}, 400)
+            for u in load_users()["users"]:
+                if u.get("username", "").lower() == username.lower() and verify_pw(password, u.get("pass", "")):
+                    tok = self._issue_token(u["id"])
+                    return self._json({"ok": True, "token": tok, "user": public_user(u),
+                                       "theme": u.get("theme", "warm")})
+            return self._json({"ok": False, "msg": "用户名或密码错误"}, 401)
+
+        # 注册（可关闭）
+        if path == "/api/auth/register" and method == "POST":
+            cfg = load_users()
+            if not cfg.get("allowRegister", True):
+                return self._json({"ok": False, "msg": "管理员已关闭自助注册"}, 403)
+            try:
+                b = json.loads(self._body().decode("utf-8"))
+                username = str(b.get("username", "")).strip()
+                password = str(b.get("password", ""))
+                name = str(b.get("name", "")).strip() or username
+            except Exception:
+                return self._json({"ok": False, "msg": "请求无效"}, 400)
+            if not re.match(r"^[a-zA-Z0-9_]{3,20}$", username):
+                return self._json({"ok": False, "msg": "账号需 3-20 位字母数字下划线"}, 400)
+            if len(password) < 6:
+                return self._json({"ok": False, "msg": "密码至少 6 位"}, 400)
+            if any(u.get("username", "").lower() == username.lower() for u in cfg["users"]):
+                return self._json({"ok": False, "msg": "账号已存在"}, 400)
+            u = {"id": "u_" + secrets.token_hex(6), "username": username, "name": name,
+                 "role": "member", "pass": hash_pw(password)}
+            cfg["users"].append(u)
+            save_users(cfg)
+            tok = self._issue_token(u["id"])
+            return self._json({"ok": True, "token": tok, "user": public_user(u), "theme": "warm"})
+
+        # 会话校验
+        if path == "/api/auth/session" and method == "GET":
+            u = self._current_user()
+            if not u:
+                return self._json({"ok": False}, 401)
+            return self._json({"ok": True, "user": public_user(u), "theme": u.get("theme", "warm")})
+
+        # 退出
+        if path == "/api/auth/logout" and method == "POST":
+            tok = self._token_from_request()
+            if tok:
+                tokens = load_tokens()
+                tokens.pop(tok, None)
+                atomic_write_json(token_file(), tokens)
+            return self._json({"ok": True})
+
+        u = self._current_user()
+        if not u:
+            return self._json({"ok": False, "msg": "请先登录"}, 401)
+        is_admin = u.get("role") == "admin"
+
+        # 修改主题
+        if path == "/api/auth/theme" and method == "POST":
+            try:
+                theme = str(json.loads(self._body().decode("utf-8")).get("theme", "warm"))
+            except Exception:
+                return self._json({"ok": False, "msg": "请求无效"}, 400)
+            if theme not in ("warm", "night", "bamboo", "ocean", "plum"):
+                return self._json({"ok": False, "msg": "未知主题"}, 400)
+            cfg = load_users()
+            for x in cfg["users"]:
+                if x.get("id") == u["id"]:
+                    x["theme"] = theme
+            save_users(cfg)
+            return self._json({"ok": True})
+
+        # 修改自己的密码
+        if path == "/api/auth/password" and method == "POST":
+            try:
+                b = json.loads(self._body().decode("utf-8"))
+                old = str(b.get("old", "")); fresh = str(b.get("fresh", ""))
+            except Exception:
+                return self._json({"ok": False, "msg": "请求无效"}, 400)
+            if not verify_pw(old, u.get("pass", "")):
+                return self._json({"ok": False, "msg": "原密码错误"}, 400)
+            if len(fresh) < 6:
+                return self._json({"ok": False, "msg": "新密码至少 6 位"}, 400)
+            cfg = load_users()
+            for x in cfg["users"]:
+                if x.get("id") == u["id"]:
+                    x["pass"] = hash_pw(fresh)
+            save_users(cfg)
+            return self._json({"ok": True})
+
+        # 管理员：账户列表 / 注册开关
+        if path == "/api/auth/users" and method == "GET":
+            if not is_admin:
+                return self._json({"ok": False, "msg": "仅管理员可查看"}, 403)
+            cfg = load_users()
+            return self._json({"ok": True, "users": [public_user(x) for x in cfg["users"]],
+                               "allowRegister": bool(cfg.get("allowRegister", True))})
+
+        if path == "/api/auth/settings" and method == "POST":
+            if not is_admin:
+                return self._json({"ok": False, "msg": "仅管理员可操作"}, 403)
+            try:
+                allow = bool(json.loads(self._body().decode("utf-8")).get("allowRegister"))
+            except Exception:
+                return self._json({"ok": False, "msg": "请求无效"}, 400)
+            cfg = load_users()
+            cfg["allowRegister"] = allow
+            save_users(cfg)
+            return self._json({"ok": True})
+
+        # 管理员：新增账户
+        if path == "/api/auth/users" and method == "POST":
+            if not is_admin:
+                return self._json({"ok": False, "msg": "仅管理员可操作"}, 403)
+            try:
+                b = json.loads(self._body().decode("utf-8"))
+                username = str(b.get("username", "")).strip()
+                password = str(b.get("password", ""))
+                name = str(b.get("name", "")).strip() or username
+                role = "admin" if b.get("role") == "admin" else "member"
+            except Exception:
+                return self._json({"ok": False, "msg": "请求无效"}, 400)
+            if not re.match(r"^[a-zA-Z0-9_]{3,20}$", username):
+                return self._json({"ok": False, "msg": "账号需 3-20 位字母数字下划线"}, 400)
+            if len(password) < 6:
+                return self._json({"ok": False, "msg": "密码至少 6 位"}, 400)
+            cfg = load_users()
+            if any(x.get("username", "").lower() == username.lower() for x in cfg["users"]):
+                return self._json({"ok": False, "msg": "账号已存在"}, 400)
+            cfg["users"].append({"id": "u_" + secrets.token_hex(6), "username": username,
+                                 "name": name, "role": role, "pass": hash_pw(password)})
+            save_users(cfg)
+            return self._json({"ok": True})
+
+        # 管理员：删除账户 / 重置密码
+        m = re.match(r"^/api/auth/users/([A-Za-z0-9_\-]+)/(delete|reset)$", path)
+        if m and method == "POST":
+            if not is_admin:
+                return self._json({"ok": False, "msg": "仅管理员可操作"}, 403)
+            uid, action = m.group(1), m.group(2)
+            cfg = load_users()
+            if action == "delete":
+                if uid == "admin":
+                    return self._json({"ok": False, "msg": "不能删除默认管理员"}, 400)
+                cfg["users"] = [x for x in cfg["users"] if x.get("id") != uid]
+                save_users(cfg)
+                tokens = load_tokens()
+                for tok in [k for k, v in tokens.items() if v.get("uid") == uid]:
+                    tokens.pop(tok, None)
+                atomic_write_json(token_file(), tokens)
+                return self._json({"ok": True})
+            try:
+                fresh = str(json.loads(self._body().decode("utf-8")).get("password", ""))
+            except Exception:
+                return self._json({"ok": False, "msg": "请求无效"}, 400)
+            if len(fresh) < 6:
+                return self._json({"ok": False, "msg": "密码至少 6 位"}, 400)
+            for x in cfg["users"]:
+                if x.get("id") == uid:
+                    x["pass"] = hash_pw(fresh)
+            save_users(cfg)
+            return self._json({"ok": True})
+
+        return self.send_error(404)
+
     # ---------- API ----------
     def _api(self, path, method):
         if path == "/api/ping" and method == "GET":
             return self._json({"ok": True, "ts": int(time.time())})
+
+        if path.startswith("/api/auth/"):
+            return self._auth_api(path, method)
+
+        # 以下数据接口需要登录（/api/file/ 供 <img> 直接使用，无法带请求头，单独放行）
+        if (path.startswith("/api/") and not path.startswith("/api/file/")
+                and not self._current_user()):
+            return self._json({"ok": False, "msg": "请先登录"}, 401)
 
         if path == "/api/state":
             if method == "GET":
