@@ -13,6 +13,8 @@
     story: { pid: 'all' },
     q: ''
   };
+  // 「我的」页三块列表的展开状态（默认各显示 3 条）
+  var meExpand = { story: false, event: false, gift: false };
 
   var ETYPE = {
     birthday: { label: '生日', icon: '🎂', cls: 'birthday' },
@@ -228,12 +230,21 @@
   ];
 
   function buildNav() {
+    // 侧边栏保留全部入口（桌面端）
     var side = TABS.map(function (t) {
       return '<button class="nav-item" data-act="tab" data-tab="' + t.id + '">' + t.icon + '<span>' + t.name + '</span></button>';
     }).join('');
     document.getElementById('sideNav').innerHTML = side;
-    document.getElementById('tabbar').innerHTML = TABS.map(function (t) {
+    // 底部导航：移除「我的」「设置」，改由右上角图标承载
+    var bottomTabs = TABS.filter(function (t) { return t.id !== 'me' && t.id !== 'set'; });
+    document.getElementById('tabbar').innerHTML = bottomTabs.map(function (t) {
       return '<button class="tab-item" data-act="tab" data-tab="' + t.id + '">' + t.icon + '<span>' + t.name + '</span></button>';
+    }).join('');
+    // 右上角图标：我的 / 设置
+    var topTabs = TABS.filter(function (t) { return t.id === 'me' || t.id === 'set'; });
+    var top = document.getElementById('topTools');
+    if (top) top.innerHTML = topTabs.map(function (t) {
+      return '<button class="top-tool" data-act="tab" data-tab="' + t.id + '" title="' + t.name + '" aria-label="' + t.name + '">' + t.icon + '</button>';
     }).join('');
   }
   function syncNav() {
@@ -690,6 +701,7 @@
     var dataHtml = '<div class="set-panel"><h3><span class="pi">💾</span>数据</h3>' +
       '<p class="hint">账本保存在 NAS，多设备实时同步。换设备或卸载前请先导出备份。</p>' +
       '<div class="set-list">' +
+      '<button class="set-row" data-act="share-center"><b>分享中心</b><em>导出账本、分享关系与往来给家人朋友</em><span>›</span></button>' +
       '<button class="set-row" data-act="data-path"><b>数据保存路径</b><em id="pathHint">点击查看详情与切换</em><span>›</span></button>' +
       '<button class="set-row" data-act="export"><b>导出备份</b><em>生成 JSON 文件</em><span>›</span></button>' +
       '<button class="set-row" data-act="import"><b>导入备份</b><em>从 JSON 恢复</em><span>›</span></button>' +
@@ -700,7 +712,7 @@
     var aboutHtml = '<div class="set-panel"><h3><span class="pi">ℹ️</span>关于</h3>' +
       '<p class="hint">人情往来 · 记礼金、看关系、过好每一个该到的日子。<br>' +
       '当前模式：' + ((window.Auth && Auth.isServer && Auth.isServer()) ? 'NAS 多设备同步' : '本地演示') + '<br>' +
-      '版本 v1.2.0</p></div>';
+      '版本 v1.2.6</p></div>';
 
     v.innerHTML = '<div class="page">' + head +
       '<div class="set-grid">' + themeHtml + userHtml + dataHtml + aboutHtml + '</div></div>';
@@ -866,7 +878,7 @@
     v.innerHTML = '<div class="page">' + head + stats +
       '<div class="story-filter-wrap">' + chips + '</div>' +
       '<div class="story-timeline">' + rows + '</div>' +
-      '<div class="foot-note">人情往来 · v1.2.5<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.6<br>故事只保存在自己的账本里，可到设置导出备份</div>' +
       '</div>';
   }
 
@@ -974,13 +986,31 @@
     var daysToBd = me.birthday ? U.daysToMD(me.birthday.slice(5)) : null;
     var age = me.birthday ? U.age(me.birthday) : null;
     var stories = storySorted();
-    var latestStory = stories[0] || null;
+
+    // 统一每块默认显示 3 条，可展开全部
+    function slice3(arr, key) { return meExpand[key] ? arr : arr.slice(0, 3); }
+    function moreBtn(total, key) {
+      if (total <= 3) return '';
+      return '<button class="me-more" data-act="me-more" data-key="' + key + '">' +
+        (meExpand[key] ? '收起' : '展开全部 ' + total + ' 条') +
+        '<span>' + (meExpand[key] ? '⌃' : '⌄') + '</span></button>';
+    }
+
+    // 回忆（陈年往事）
+    var storiesHtml = stories.length
+      ? slice3(stories, 'story').map(function (s) {
+          return '<button class="me-event me-memo" data-act="edit-story" data-sid="' + s.id + '">' +
+            '<span class="me-event-ico">' + U.esc(s.emoji || '📖') + '</span>' +
+            '<span class="me-event-txt"><b>' + U.esc(s.title) + '</b><em>' + U.cnDate(s.date) + (s.mood ? ' · ' + U.esc(s.mood) : '') + '</em></span>' +
+            '<span class="me-event-day">›</span></button>';
+        }).join('')
+      : '<div class="me-empty">还没有回忆，去「陈年往事」写下第一段</div>';
 
     // 近期事项：未来 60 天内的生日 / 忌日 / 自定义事项
-    var ups = upcoming(60).slice(0, 5);
+    var upsAll = upcoming(60);
     var eventIcon = { birthday: '🎂', memorial: '🕯️', banquet: '🍽️', custom: '📌' };
-    var eventsHtml = ups.length
-      ? ups.map(function (it) {
+    var eventsHtml = upsAll.length
+      ? slice3(upsAll, 'event').map(function (it) {
           return '<button class="me-event" data-act="tab" data-tab="cal">' +
             '<span class="me-event-ico">' + (eventIcon[it.type] || '📌') + '</span>' +
             '<span class="me-event-txt"><b>' + U.esc(it.title) + '</b><em>' + U.esc(it.meta || '') + '</em></span>' +
@@ -990,9 +1020,9 @@
       : '<div class="me-empty">近两个月没有待办事项</div>';
 
     // 最近往来
-    var recent = state.gifts.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; }).slice(0, 4);
-    var recentHtml = recent.length
-      ? recent.map(function (g) {
+    var giftsAll = state.gifts.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+    var recentHtml = giftsAll.length
+      ? slice3(giftsAll, 'gift').map(function (g) {
           var who = g.pid === 'me' ? '我' : pname(g.pid);
           return '<div class="me-recent">' +
             '<span class="me-recent-ico ' + (g.dir === 'in' ? 'in' : 'out') + '">' + (g.dir === 'in' ? '收' : '送') + '</span>' +
@@ -1027,16 +1057,6 @@
       '<span title="亲友"><i style="background:var(--gold)"></i>亲友 ' + c[2] + '</span>' +
       '<span title="朋友"><i style="background:var(--ink-3)"></i>朋友 ' + c[3] + '</span>' +
       '</div>' +
-      '<button class="me-story-entry" data-act="tab" data-tab="story">' +
-      '<span class="mse-ico">' + U.esc(latestStory ? (latestStory.emoji || '📖') : '📖') + '</span>' +
-      '<span class="mse-txt"><b>' + (latestStory ? U.esc(latestStory.title) : '还没有故事') + '</b>' +
-      '<em>' + (latestStory ? (stories.length + ' 篇回忆 · 最近写于 ' + U.cnDate(latestStory.date)) : '点这里写下第一段回忆') + '</em></span>' +
-      '<span class="mse-go">前往 ›</span></button>' +
-      '<button class="me-story-entry me-share-entry" data-act="share-center">' +
-      '<span class="mse-ico">📤</span>' +
-      '<span class="mse-txt"><b>分享中心</b>' +
-      '<em>导出账本、分享关系与往来，给家人朋友看</em></span>' +
-      '<span class="mse-go">打开 ›</span></button>' +
       '<div class="me-meta">' +
       (me.birthday ? '<span>🎂 ' + U.cnDate(me.birthday) + (daysToBd === 0 ? ' · 今天生日' : ' · ' + daysToBd + ' 天后') + '</span>' : '') +
       (me.since ? '<span>💍 结婚纪念 ' + U.cnDate(me.since) + '</span>' : '') +
@@ -1046,11 +1066,17 @@
 
       '<div class="sec-title"><span>近期事项</span><em>生日 · 忌日 · 自定义</em></div>' +
       '<div class="me-list">' + eventsHtml + '</div>' +
+      moreBtn(upsAll.length, 'event') +
 
       '<div class="sec-title"><span>最近往来</span><em>点「记一笔」记录新的往来</em></div>' +
       '<div class="me-list">' + recentHtml + '</div>' +
+      moreBtn(giftsAll.length, 'gift') +
 
-      '<div class="foot-note">人情往来 · v1.2.5<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
+      '<div class="sec-title"><span>回忆</span><em>共 ' + stories.length + ' 篇陈年往事 · 点开可编辑</em></div>' +
+      '<div class="me-list">' + storiesHtml + '</div>' +
+      moreBtn(stories.length, 'story') +
+
+      '<div class="foot-note">人情往来 · v1.2.6<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
@@ -1384,6 +1410,11 @@
     if (!t) return;
     var act = t.getAttribute('data-act');
     if (act === 'tab') { ui.tab = t.getAttribute('data-tab'); render(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (act === 'me-more') {
+      var mk = t.getAttribute('data-key');
+      if (meExpand[mk] !== undefined) { meExpand[mk] = !meExpand[mk]; renderMe(); }
+      return;
+    }
     if (act === 'close') { closeSheet(); return; }
     if (act === 'rel-mode') { ui.relMode = t.getAttribute('data-mode'); render(); return; }
     if (act === 'zoom') { Graph.zoom(Number(t.getAttribute('data-dir'))); return; }
