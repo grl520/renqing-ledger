@@ -710,7 +710,7 @@
     var aboutHtml = '<div class="set-panel"><h3><span class="pi">ℹ️</span>关于</h3>' +
       '<p class="hint">人情往来 · 记礼金、看关系、过好每一个该到的日子。<br>' +
       '当前模式：' + ((window.Auth && Auth.isServer && Auth.isServer()) ? 'NAS 多设备同步' : '本地演示') + '<br>' +
-      '版本 v1.2.12</p></div>';
+      '版本 v1.2.13</p></div>';
 
     v.innerHTML = '<div class="page">' + head +
       '<div class="set-grid">' + themeHtml + userHtml + dataHtml + aboutHtml + '</div></div>';
@@ -876,7 +876,7 @@
     v.innerHTML = '<div class="page">' + head + stats +
       '<div class="story-filter-wrap">' + chips + '</div>' +
       '<div class="story-timeline">' + rows + '</div>' +
-      '<div class="foot-note">人情往来 · v1.2.12<br>往事只保存在自己的账本里，可到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.13<br>往事只保存在自己的账本里，可到设置导出备份</div>' +
       '</div>';
   }
 
@@ -984,12 +984,11 @@
     var age = me.birthday ? U.age(me.birthday) : null;
     var stories = storySorted();
 
-    // 统一每块默认显示 3 条，点击跳转到对应页面查看全部
-    function moreBtn(total, tab, label) {
-      if (total <= 3) return '';
-      return '<button class="me-more" data-act="tab" data-tab="' + tab + '">' +
-        '前往' + label + '查看全部' +
-        '<span>›</span></button>';
+    // 每块默认显示 3 条，标题右侧给「查看全部」，点击跳到对应页面
+    function moreLink(total, tab, label) {
+      if (!total) return '';
+      return '<button class="sec-more" data-act="tab" data-tab="' + tab + '" title="前往' + label + '查看全部">' +
+        '查看全部<span>›</span></button>';
     }
 
     // 回忆（陈年往事）
@@ -1042,16 +1041,16 @@
       '</div>' +
       '<div class="me-stats">' +
       '<div class="ms-col">' +
-      '<div class="ms-item"><span>亲朋好友</span><b>' + c.total + '</b></div>' +
-      '<div class="ms-item"><i class="ms-dot" style="background:var(--red)"></i><span>至亲</span><b>' + c[1] + '</b></div>' +
-      '<div class="ms-item"><i class="ms-dot" style="background:var(--gold)"></i><span>亲友</span><b>' + c[2] + '</b></div>' +
-      '<div class="ms-item"><i class="ms-dot" style="background:var(--ink-3)"></i><span>朋友</span><b>' + c[3] + '</b></div>' +
+      '<div class="ms-item"><span class="ms-k">亲朋好友</span><b>' + c.total + '</b></div>' +
+      '<div class="ms-item"><span class="ms-k dot" style="--dot:var(--red)">至亲</span><b>' + c[1] + '</b></div>' +
+      '<div class="ms-item"><span class="ms-k dot" style="--dot:var(--gold)">亲友</span><b>' + c[2] + '</b></div>' +
+      '<div class="ms-item"><span class="ms-k dot" style="--dot:var(--ink-3)">朋友</span><b>' + c[3] + '</b></div>' +
       '</div>' +
       '<div class="ms-col">' +
-      '<div class="ms-item"><span>往来笔数</span><b>' + t.count + '</b></div>' +
-      '<div class="ms-item"><span>累计收</span><b class="c-in">' + U.money(t.in) + '</b></div>' +
-      '<div class="ms-item"><span>累计送</span><b class="c-out">' + U.money(t.out) + '</b></div>' +
-      '<div class="ms-item"><span>净往来</span><b class="' + (net >= 0 ? 'c-in' : 'c-out') + '">' + (net >= 0 ? '收 ' : '送 ') + U.money(net) + '</b></div>' +
+      '<div class="ms-item"><span class="ms-k">往来笔数</span><b>' + t.count + '</b></div>' +
+      '<div class="ms-item"><span class="ms-k">累计收</span><b class="c-in">' + U.money(t.in) + '</b></div>' +
+      '<div class="ms-item"><span class="ms-k">累计送</span><b class="c-out">' + U.money(t.out) + '</b></div>' +
+      '<div class="ms-item"><span class="ms-k">净往来</span><b class="' + (net >= 0 ? 'c-in' : 'c-out') + '">' + (net >= 0 ? '收 ' : '送 ') + U.money(net) + '</b></div>' +
       '</div>' +
       '</div>' +
       ((me.birthday || me.since) ? '<div class="me-meta">' +
@@ -1059,19 +1058,16 @@
       (me.since ? '<span>💍 结婚纪念 ' + U.cnDate(me.since) + '</span>' : '') +
       '</div>' : '') + '</div>' +
 
-      '<div class="sec-title"><span>近期事项</span><em>生日 · 忌日 · 自定义</em></div>' +
+      '<div class="sec-title"><span>近期事项</span>' + moreLink(upsAll.length, 'cal', '日历') + '</div>' +
       '<div class="me-list">' + eventsHtml + '</div>' +
-      moreBtn(upsAll.length, 'cal', '日历') +
 
-      '<div class="sec-title"><span>最近往来</span><em>点「记一笔」记录新的往来</em></div>' +
+      '<div class="sec-title"><span>最近往来</span>' + moreLink(giftsAll.length, 'ledger', '礼金台账') + '</div>' +
       '<div class="me-list">' + recentHtml + '</div>' +
-      moreBtn(giftsAll.length, 'ledger', '礼金台账') +
 
-      '<div class="sec-title"><span>陈年往事</span><em>共 ' + stories.length + ' 篇 · 点开可编辑</em></div>' +
+      '<div class="sec-title"><span>陈年往事</span>' + moreLink(stories.length, 'story', '陈年往事') + '</div>' +
       '<div class="me-list">' + storiesHtml + '</div>' +
-      moreBtn(stories.length, 'story', '陈年往事') +
 
-      '<div class="foot-note">人情往来 · v1.2.12<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.13<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
