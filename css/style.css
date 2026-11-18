@@ -116,7 +116,8 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; padding: 0; }
+/* 防止移动端浏览器按屏幕宽度自动放大字号，导致统计区两列被撑爆换行 */
+html, body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   background: var(--paper);
   color: var(--ink);
@@ -899,20 +900,23 @@ textarea.input { padding: 10px 12px; height: auto; resize: vertical; line-height
   position: relative; z-index: 1;
 }
 .ms-col { display: flex; flex-direction: column; row-gap: 12px; min-width: 0; }
-.ms-item { display: flex; align-items: center; justify-content: space-between; gap: 36px; }
-/* 所有标签统一 12px 左内边距，圆点绝对定位在左——四行文字左边缘严格对齐 */
+.ms-item { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+/* 每个标签前都留一个圆点位（非圈层项透明占位），四行文字左边缘天然对齐 */
 .ms-k {
-  position: relative; display: inline-block; padding-left: 12px;
+  display: inline-flex; align-items: center; gap: 7px;
+  flex: 0 0 auto; min-width: max-content;
   font-size: 12px; line-height: 20px; color: var(--ink-3); white-space: nowrap;
 }
-.ms-k.dot::before {
-  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 7px; height: 7px; border-radius: 50%; background: var(--dot, var(--ink-3));
+.ms-k::before {
+  content: ''; display: block; flex: none;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--dot, transparent);
 }
 .ms-item b {
+  flex: none; white-space: nowrap;
   font-family: var(--serif); font-size: 16px; line-height: 20px;
   font-weight: 600; color: var(--ink); text-align: right;
-  font-variant-numeric: tabular-nums; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 日期 / 省市 表单控件（替代原生日期框，跟主题一致） */
@@ -924,11 +928,9 @@ textarea.input { padding: 10px 12px; height: auto; resize: vertical; line-height
 /* 窄屏：统计区与双列下拉收一收 */
 @media (max-width: 380px) {
   .me-stats { column-gap: 10px; }
-  .ms-item { gap: 18px; }
+  .ms-item { gap: 12px; }
   .ms-k { font-size: 11px; }
   .ms-item b { font-size: 14.5px; }
-  .ms-k { font-size: 10px; }
-  .ms-item b { font-size: 13.5px; }
   .region-row { grid-template-columns: 1fr 1fr; }
 }
 .me-ringbar {
