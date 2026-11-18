@@ -196,11 +196,127 @@
     if (opts.onMount) opts.onMount(root);
     return root;
   }
+  // 软键盘弹出会遮住弹层：按可视视口高度把弹层顶起来，并让当前输入项居中可见
+  function syncKeyboard() {
+    var root = document.getElementById('modalRoot');
+    if (!root || !root.querySelector) return;
+    var sheet = root.querySelector('.sheet');
+    if (!sheet) return;
+    var vv = window.visualViewport;
+    var kb = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+    if (kb > 90) {
+      var lift = Math.min(kb, Math.round(window.innerHeight * 0.55));
+      sheet.style.bottom = lift + 'px';
+      sheet.style.maxHeight = 'calc(100vh - ' + (lift + 10) + 'px)';
+    } else {
+      sheet.style.bottom = '';
+      sheet.style.maxHeight = '';
+    }
+  }
+  function keepFieldVisible(el) {
+    if (!el || !el.scrollIntoView) return;
+    var body = el.closest ? el.closest('.sheet-body') : null;
+    if (!body) return;
+    setTimeout(function () {
+      syncKeyboard();
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 260);
+  }
   function closeSheet() {
     var root = document.getElementById('modalRoot');
     root.classList.remove('open');
     root.innerHTML = '';
     document.body.classList.remove('locked');
+  }
+
+  /* ---------------- 表单小部件：日期 / 省市 ---------------- */
+  function dayCount(y, m) {
+    if (!y || !m) return 31;
+    return new Date(Number(y), Number(m), 0).getDate();
+  }
+  function dayOptions(y, m, sel) {
+    var n = dayCount(y, m), out = '<option value="">日</option>';
+    for (var i = 1; i <= n; i++) {
+      out += '<option value="' + i + '"' + (String(i) === String(Number(sel)) ? ' selected' : '') + '>' + i + ' 日</option>';
+    }
+    return out;
+  }
+  // 年 / 月 / 日三个下拉，替代原生日期框（原生弹层无法跟主题统一）
+  function dateRowHTML(name, iso, opts) {
+    var seg = String(iso || '').split('-');
+    var y = seg[0] || '', m = seg[1] || '', d = seg[2] || '';
+    var nowY = new Date().getFullYear();
+    var maxY = (opts && opts.max) || nowY;
+    var minY = (opts && opts.min) || (maxY - 100);
+    var yOpts = '<option value="">年</option>';
+    for (var i = maxY; i >= minY; i--) {
+      yOpts += '<option value="' + i + '"' + (String(i) === String(Number(y)) ? ' selected' : '') + '>' + i + ' 年</option>';
+    }
+    var mOpts = '<option value="">月</option>';
+    for (var j = 1; j <= 12; j++) {
+      mOpts += '<option value="' + j + '"' + (String(j) === String(Number(m)) ? ' selected' : '') + '>' + j + ' 月</option>';
+    }
+    return '<div class="date-row" data-date="' + name + '">' +
+      '<select class="select d-y" data-act="date-part" aria-label="年">' + yOpts + '</select>' +
+      '<select class="select d-m" data-act="date-part" aria-label="月">' + mOpts + '</select>' +
+      '<select class="select d-d" data-act="date-part" aria-label="日">' + dayOptions(y, m, d) + '</select>' +
+      '</div>';
+  }
+  function dateVal(root, name) {
+    var box = root.querySelector('[data-date="' + name + '"]');
+    if (!box) return '';
+    var y = box.querySelector('.d-y').value, m = box.querySelector('.d-m').value, d = box.querySelector('.d-d').value;
+    if (!y || !m || !d) return '';
+    return y + '-' + ('0' + m).slice(-2) + '-' + ('0' + d).slice(-2);
+  }
+  function syncDateRow(el) {
+    var box = el.parentNode;
+    if (!box || !box.classList || !box.classList.contains('date-row')) return;
+    var d = box.querySelector('.d-d');
+    d.innerHTML = dayOptions(box.querySelector('.d-y').value, box.querySelector('.d-m').value, d.value);
+  }
+
+  var REGION = window.REGION || {};
+  function splitRegion(v) {
+    var s = String(v || '');
+    var i = s.indexOf(' · ');
+    return i > -1 ? [s.slice(0, i), s.slice(i + 3)] : (s ? [s, ''] : ['', '']);
+  }
+  // 省 + 市 两个下拉，值存成「湖南 · 邵阳」
+  function regionHTML(name, value) {
+    var pair = splitRegion(value), prov = pair[0], city = pair[1];
+    var provs = Object.keys(REGION);
+    if (prov && provs.indexOf(prov) < 0) provs = [prov].concat(provs);
+    var cities = (REGION[prov] || []).slice();
+    if (city && cities.indexOf(city) < 0) cities = cities.concat([city]);
+    var pHtml = '<option value="">省份</option>' + provs.map(function (k) {
+      return '<option value="' + U.esc(k) + '"' + (k === prov ? ' selected' : '') + '>' + U.esc(k) + '</option>';
+    }).join('');
+    var cHtml = '<option value="">城市</option>' + cities.map(function (k) {
+      return '<option value="' + U.esc(k) + '"' + (k === city ? ' selected' : '') + '>' + U.esc(k) + '</option>';
+    }).join('');
+    return '<div class="region-row" data-region="' + name + '">' +
+      '<select class="select r-p" data-act="region-prov" aria-label="省份">' + pHtml + '</select>' +
+      '<select class="select r-c" data-act="region-city" aria-label="城市">' + cHtml + '</select>' +
+      '</div>';
+  }
+  function regionVal(root, name) {
+    var box = root.querySelector('[data-region="' + name + '"]');
+    if (!box) return '';
+    var prov = box.querySelector('.r-p').value, city = box.querySelector('.r-c').value;
+    if (!prov) return '';
+    return city ? prov + ' · ' + city : prov;
+  }
+  function syncRegion(el) {
+    var box = el.parentNode;
+    if (!box || !box.classList || !box.classList.contains('region-row')) return;
+    var prov = box.querySelector('.r-p').value;
+    var cSel = box.querySelector('.r-c');
+    var cities = (window.REGION && window.REGION[prov]) || [];
+    cSel.innerHTML = '<option value="">城市</option>' + cities.map(function (k) {
+      return '<option value="' + U.esc(k) + '">' + U.esc(k) + '</option>';
+    }).join('');
+    cSel.disabled = !cities.length;
   }
 
   /* ---------------- 导航 ---------------- */
@@ -710,7 +826,7 @@
     var aboutHtml = '<div class="set-panel"><h3><span class="pi">ℹ️</span>关于</h3>' +
       '<p class="hint">人情往来 · 记礼金、看关系、过好每一个该到的日子。<br>' +
       '当前模式：' + ((window.Auth && Auth.isServer && Auth.isServer()) ? 'NAS 多设备同步' : '本地演示') + '<br>' +
-      '版本 v1.2.13</p></div>';
+      '版本 v1.2.14</p></div>';
 
     v.innerHTML = '<div class="page">' + head +
       '<div class="set-grid">' + themeHtml + userHtml + dataHtml + aboutHtml + '</div></div>';
@@ -876,7 +992,7 @@
     v.innerHTML = '<div class="page">' + head + stats +
       '<div class="story-filter-wrap">' + chips + '</div>' +
       '<div class="story-timeline">' + rows + '</div>' +
-      '<div class="foot-note">人情往来 · v1.2.13<br>往事只保存在自己的账本里，可到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.14<br>往事只保存在自己的账本里，可到设置导出备份</div>' +
       '</div>';
   }
 
@@ -895,7 +1011,7 @@
     var body = '<div class="form">' +
       '<label class="field"><span>标题</span><input class="input" name="title" value="' + U.esc(s ? s.title : '') + '" placeholder="如：那年我们一起过的年"></label>' +
       '<div class="field-2">' +
-      '<label class="field"><span>日期</span><input class="input" type="date" name="date" value="' + (s ? s.date : U.todayISO()) + '"></label>' +
+      '<div class="field"><span>日期</span>' + dateRowHTML('date', s ? s.date : U.todayISO()) + '</div>' +
       '<label class="field"><span>图标</span><input class="input" name="emoji" maxlength="4" value="' + U.esc(s ? (s.emoji || '📖') : '📖') + '" placeholder="一个表情"></label></div>' +
       '<label class="field"><span>心情</span><select class="select" name="mood">' +
       '<option value="">不填</option>' +
@@ -953,7 +1069,7 @@
       root.querySelectorAll('.spick.on').forEach(function (b) { pids.push(b.getAttribute('data-pick')); });
       var data = {
         title: title,
-        date: root.querySelector('[name=date]').value || U.todayISO(),
+        date: dateVal(root, 'date') || U.todayISO(),
         emoji: root.querySelector('[name=emoji]').value.trim() || '📖',
         mood: root.querySelector('[name=mood]').value,
         pids: pids,
@@ -1035,9 +1151,9 @@
       '<div class="me-top">' +
       '<span class="ava me-ava">' + me.emoji + '<i class="me-ring"></i></span>' +
       '<div class="me-info"><h2>' + U.esc(me.nick || me.name) + '</h2>' +
-      '<p>' + U.esc(me.name) + (age !== null ? ' · ' + age + ' 岁' : '') + (me.hometown ? ' · ' + U.esc(me.hometown) : '') + '</p>' +
-      '<button class="me-motto" data-act="edit-me" title="点击修改个性签名">' + U.esc(me.motto || '有来有往，记在心里。') + '</button></div>' +
-      '<button class="icon-btn" data-act="edit-me">编辑</button>' +
+      '<p>' + U.esc(me.name) + (age !== null ? ' · ' + age + ' 岁' : '') + (me.hometown ? ' · ' + U.esc(me.hometown) : '') + '</p></div>' +
+      '<button class="icon-btn me-edit" data-act="edit-me">编辑</button>' +
+      '<button class="me-motto" data-act="edit-me" title="点击修改个性签名">' + U.esc(me.motto || '有来有往，记在心里。') + '</button>' +
       '</div>' +
       '<div class="me-stats">' +
       '<div class="ms-col">' +
@@ -1050,7 +1166,7 @@
       '<div class="ms-item"><span class="ms-k">往来笔数</span><b>' + t.count + '</b></div>' +
       '<div class="ms-item"><span class="ms-k">累计收</span><b class="c-in">' + U.money(t.in) + '</b></div>' +
       '<div class="ms-item"><span class="ms-k">累计送</span><b class="c-out">' + U.money(t.out) + '</b></div>' +
-      '<div class="ms-item"><span class="ms-k">净往来</span><b class="' + (net >= 0 ? 'c-in' : 'c-out') + '">' + (net >= 0 ? '收 ' : '送 ') + U.money(net) + '</b></div>' +
+      '<div class="ms-item"><span class="ms-k">净往来</span><b class="' + (net >= 0 ? 'c-in' : 'c-out') + '">' + (net >= 0 ? '+' : '−') + U.money(net) + '</b></div>' +
       '</div>' +
       '</div>' +
       ((me.birthday || me.since) ? '<div class="me-meta">' +
@@ -1067,7 +1183,7 @@
       '<div class="sec-title"><span>陈年往事</span>' + moreLink(stories.length, 'story', '陈年往事') + '</div>' +
       '<div class="me-list">' + storiesHtml + '</div>' +
 
-      '<div class="foot-note">人情往来 · v1.2.13<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
+      '<div class="foot-note">人情往来 · v1.2.14<br>数据保存在 NAS；换设备或卸载前请先到设置导出备份</div>' +
       '</div>';
     v.innerHTML = html;
   }
@@ -1139,6 +1255,8 @@
       (me.birthday ? '<div><span>生日</span><b>' + U.cnDateFull(me.birthday) + '</b></div>' : '') +
       (me.since ? '<div><span>结婚纪念</span><b>' + U.cnDateFull(me.since) + '</b></div>' : '') +
       (me.phone ? '<div><span>手机</span><b>' + U.esc(me.phone) + '</b></div>' : '') +
+      (me.hometown ? '<div><span>家乡</span><b>' + U.esc(me.hometown) + '</b></div>' : '') +
+      (me.city ? '<div><span>所在城市</span><b>' + U.esc(me.city) + '</b></div>' : '') +
       (me.address ? '<div><span>地址</span><b>' + U.esc(me.address) + '</b></div>' : '') +
       '</div>';
     openSheet({
@@ -1179,13 +1297,13 @@
       '</select></label></div>' +
       '<div class="field-2">' +
       '<label class="field"><span>头像</span><input class="input" name="emoji" value="' + U.esc(p ? p.emoji : '🙂') + '" maxlength="4"></label>' +
-      '<label class="field"><span>生日</span><input class="input" type="date" name="birthday" value="' + (p && p.birthday ? p.birthday : '') + '"></label></div>' +
+      '<div class="field"><span>生日</span>' + dateRowHTML('birthday', p && p.birthday ? p.birthday : '') + '</div></div>' +
       '<div class="field-2">' +
       '<label class="field"><span>配偶</span><select class="select" name="spouseId">' + personOptions(p ? p.spouseId : '', true) + '</select></label>' +
       '<label class="field"><span>通过谁认识</span><select class="select" name="via">' + personOptions(p ? p.via : 'me', true) + '</select></label></div>' +
       '<div class="field-2">' +
       '<label class="field"><span>手机号码</span><input class="input" type="tel" name="phone" value="' + U.esc(p ? p.phone : '') + '" placeholder="选填"></label>' +
-      '<label class="field"><span>忌日</span><input class="input" type="date" name="deathday" value="' + (p && p.deathday ? p.deathday : '') + '"></label></div>' +
+      '<div class="field"><span>忌日</span>' + dateRowHTML('deathday', p && p.deathday ? p.deathday : '') + '</div></div>' +
       '<label class="field"><span>地址</span><input class="input" name="address" value="' + U.esc(p ? p.address : '') + '" placeholder="家庭住址或所在城市，选填"></label>' +
       '<label class="field"><span>标签</span><input class="input" name="tags" value="' + U.esc(p && p.tags ? p.tags.join('、') : '') + '" placeholder="用、分隔，如：爱下棋、在深圳"></label>' +
       '<label class="field"><span>备注</span><textarea class="input" name="note" rows="2" placeholder="想记住的细节">' + U.esc(p ? p.note : '') + '</textarea></label>' +
@@ -1200,8 +1318,8 @@
         relation: f.querySelector('[name=relation]').value.trim() || '亲友',
         ring: Number(f.querySelector('[name=ring]').value),
         emoji: f.querySelector('[name=emoji]').value.trim() || '🙂',
-        birthday: f.querySelector('[name=birthday]').value,
-        deathday: f.querySelector('[name=deathday]').value,
+        birthday: dateVal(f, 'birthday'),
+        deathday: dateVal(f, 'deathday'),
         phone: f.querySelector('[name=phone]').value.trim(),
         address: f.querySelector('[name=address]').value.trim(),
         spouseId: f.querySelector('[name=spouseId]').value,
@@ -1260,7 +1378,7 @@
       '</select></label>' +
       '<div class="field-2">' +
       '<label class="field"><span>金额</span><input class="input big" type="number" name="amount" inputmode="decimal" value="' + (g ? g.amount : '') + '" placeholder="0"></label>' +
-      '<label class="field"><span>日期</span><input class="input" type="date" name="date" value="' + (g ? g.date : U.todayISO()) + '"></label></div>' +
+      '<div class="field"><span>日期</span>' + dateRowHTML('date', g ? g.date : U.todayISO()) + '</div></div>' +
       '<label class="field"><span>事由</span><select class="select" name="occ">' +
       window.OCCASIONS.map(function (o) { return '<option' + (g && g.occ === o ? ' selected' : (!g && o === '婚礼' ? ' selected' : '')) + '>' + o + '</option>'; }).join('') +
       '</select></label>' +
@@ -1284,7 +1402,7 @@
         pid: root.querySelector('[name=pid]').value,
         dir: root.dataset.dir,
         amount: amount,
-        date: root.querySelector('[name=date]').value || U.todayISO(),
+        date: dateVal(root, 'date') || U.todayISO(),
         occ: root.querySelector('[name=occ]').value,
         note: root.querySelector('[name=note]').value.trim()
       };
@@ -1310,7 +1428,7 @@
       [['banquet', '宴请 / 红白事'], ['birthday', '生日'], ['memorial', '忌日'], ['custom', '其他事项']].map(function (x) {
         return '<option value="' + x[0] + '"' + ((e ? e.type : 'banquet') === x[0] ? ' selected' : '') + '>' + x[1] + '</option>';
       }).join('') + '</select></label>' +
-      '<label class="field"><span>日期</span><input class="input" type="date" name="date" value="' + (e ? e.date : (date || U.todayISO())) + '"></label></div>' +
+      '<div class="field"><span>日期</span>' + dateRowHTML('date', e ? e.date : (date || U.todayISO())) + '</div></div>' +
       '<label class="field"><span>关联亲友</span><select class="select" name="personId">' + personOptions(e ? e.personId : '', false) + '</select></label>' +
       '<label class="check"><input type="checkbox" name="repeat"' + (!e || e.repeat === 'yearly' ? ' checked' : '') + '><span>每年重复（生日、纪念日、忌日）</span></label>' +
       '<label class="field"><span>备注</span><input class="input" name="note" value="' + U.esc(e ? e.note : '') + '" placeholder="选填，比如：下午三点、带红包"></label>' +
@@ -1324,7 +1442,7 @@
       var data = {
         title: title,
         type: root.querySelector('[name=type]').value,
-        date: root.querySelector('[name=date]').value || U.todayISO(),
+        date: dateVal(root, 'date') || U.todayISO(),
         personId: root.querySelector('[name=personId]').value,
         repeat: root.querySelector('[name=repeat]').checked ? 'yearly' : 'none',
         note: root.querySelector('[name=note]').value.trim()
@@ -1352,12 +1470,10 @@
       '<div class="field-2">' +
       '<label class="field"><span>昵称</span><input class="input" name="nick" value="' + U.esc(me.nick || '') + '" placeholder="家里人怎么叫你"></label>' +
       '<label class="field"><span>姓名</span><input class="input" name="name" value="' + U.esc(me.name || '') + '" placeholder="你的名字"></label></div>' +
-      '<div class="field-2">' +
       '<label class="field"><span>头像</span><input class="input" name="emoji" maxlength="4" value="' + U.esc(me.emoji || '🎁') + '" placeholder="一个表情"></label>' +
-      '<label class="field"><span>生日</span><input class="input" type="date" name="birthday" value="' + (me.birthday || '') + '"></label></div>' +
-      '<div class="field-2">' +
-      '<label class="field"><span>家乡</span><input class="input" name="hometown" value="' + U.esc(me.hometown || '') + '" placeholder="如：湖南 · 邵阳"></label>' +
-      '<label class="field"><span>所在城市</span><input class="input" name="address" value="' + U.esc(me.address || '') + '" placeholder="如：长沙市岳麓区"></label></div>' +
+      '<div class="field"><span>生日</span>' + dateRowHTML('birthday', me.birthday || '') + '</div>' +
+      '<div class="field"><span>家乡</span>' + regionHTML('hometown', me.hometown || '') + '</div>' +
+      '<div class="field"><span>所在城市</span>' + regionHTML('city', me.city || me.address || '') + '</div>' +
       '<label class="field"><span>个性签名</span><input class="input" name="motto" value="' + U.esc(me.motto || '') + '" placeholder="选填，写一句自己的话"></label>' +
       '</div>';
     var root = openSheet({
@@ -1375,9 +1491,10 @@
         nick: nick || name,
         name: name || nick,
         emoji: root.querySelector('[name=emoji]').value.trim() || '🎁',
-        birthday: root.querySelector('[name=birthday]').value || '',
-        hometown: root.querySelector('[name=hometown]').value.trim(),
-        address: root.querySelector('[name=address]').value.trim(),
+        birthday: dateVal(root, 'birthday'),
+        hometown: regionVal(root, 'hometown'),
+        city: regionVal(root, 'city'),
+        address: '',
         motto: root.querySelector('[name=motto]').value.trim(),
         phone: me.phone || '',
         since: '',
@@ -1393,21 +1510,28 @@
   function openMeForm() {
     var me = state.me;
     var body = '<div class="form">' +
-      '<div class="field-2"><label class="field"><span>昵称</span><input class="input" name="nick" value="' + U.esc(me.nick || '') + '"></label>' +
+      '<div class="field-2">' +
+      '<label class="field"><span>昵称</span><input class="input" name="nick" value="' + U.esc(me.nick || '') + '"></label>' +
       '<label class="field"><span>姓名</span><input class="input" name="name" value="' + U.esc(me.name || '') + '"></label></div>' +
-      '<div class="field-2"><label class="field"><span>头像</span><input class="input" name="emoji" maxlength="4" value="' + U.esc(me.emoji || '🎁') + '"></label>' +
-      '<label class="field"><span>生日</span><input class="input" type="date" name="birthday" value="' + (me.birthday || '') + '"></label></div>' +
-      '<div class="field-2"><label class="field"><span>结婚纪念日</span><input class="input" type="date" name="since" value="' + (me.since || '') + '"></label>' +
+      '<div class="field-2">' +
+      '<label class="field"><span>头像</span><input class="input" name="emoji" maxlength="4" value="' + U.esc(me.emoji || '🎁') + '"></label>' +
       '<label class="field"><span>手机号码</span><input class="input" type="tel" name="phone" value="' + U.esc(me.phone || '') + '"></label></div>' +
-      '<label class="field"><span>地址</span><input class="input" name="address" value="' + U.esc(me.address || '') + '" placeholder="家庭住址或所在城市"></label>' +
-      '<label class="field"><span>家乡</span><input class="input" name="hometown" value="' + U.esc(me.hometown || '') + '"></label>' +
+      '<div class="field"><span>生日</span>' + dateRowHTML('birthday', me.birthday || '') + '</div>' +
+      '<div class="field"><span>结婚纪念日</span>' + dateRowHTML('since', me.since || '') + '</div>' +
+      '<div class="field"><span>家乡</span>' + regionHTML('hometown', me.hometown || '') + '</div>' +
+      '<div class="field"><span>所在城市</span>' + regionHTML('city', me.city || me.address || '') + '</div>' +
+      '<label class="field"><span>详细地址</span><input class="input" name="address" value="' + U.esc(me.address || '') + '" placeholder="街道、小区，选填"></label>' +
       '<label class="field"><span>个性签名</span><input class="input" name="motto" value="' + U.esc(me.motto || '') + '" placeholder="写一句自己的话，显示在「我的」页顶部"></label>' +
       '</div>';
     var root = openSheet({ title: '编辑我的资料', body: body, footer: '<button class="btn" data-save="1">保存</button>' });
     root.querySelector('[data-save]').addEventListener('click', function () {
-      ['nick', 'name', 'emoji', 'birthday', 'since', 'phone', 'address', 'hometown', 'motto'].forEach(function (k) {
+      ['nick', 'name', 'emoji', 'phone', 'address', 'motto'].forEach(function (k) {
         me[k] = root.querySelector('[name=' + k + ']').value.trim();
       });
+      me.birthday = dateVal(root, 'birthday');
+      me.since = dateVal(root, 'since');
+      me.hometown = regionVal(root, 'hometown');
+      me.city = regionVal(root, 'city');
       save(); closeSheet(); render(); toast('已更新');
     });
   }
@@ -1534,6 +1658,8 @@
     var act = el.getAttribute && el.getAttribute('data-act');
     if (act === 'lf-range') { ui.ledger.range = el.value; renderLedger(); }
     if (act === 'lf-pid') { ui.ledger.pid = el.value; renderLedger(); }
+    if (act === 'date-part') { syncDateRow(el); return; }
+    if (act === 'region-prov') { syncRegion(el); return; }
   }
   function onInput(e) {
     if (e.target.id === 'relSearch') {
@@ -1563,6 +1689,14 @@
     document.addEventListener('click', onClick);
     document.addEventListener('change', onChange);
     document.addEventListener('input', onInput);
+    document.addEventListener('focusin', function (e) {
+      var el = e.target;
+      if (!el || !el.tagName) return;
+      if (/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) keepFieldVisible(el);
+    });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', function () { syncKeyboard(); });
+    }
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSheet(); });
     render();
     pullRemote(true);

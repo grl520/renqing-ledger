@@ -567,17 +567,27 @@ textarea.input { padding: 10px 12px; height: auto; resize: vertical; line-height
   content: ''; position: absolute; right: -50px; top: -60px; width: 180px; height: 180px;
   border-radius: 50%; background: radial-gradient(circle, rgba(223, 166, 60, .18), transparent 70%);
 }
-.me-top { display: flex; gap: 14px; align-items: flex-start; position: relative; z-index: 1; }
-.me-ava { width: 58px; height: 58px; font-size: 27px; position: relative; background: var(--card); box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--gold); }
+.me-top {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start; column-gap: 14px; row-gap: 4px;
+  position: relative; z-index: 1;
+}
+.me-ava { width: 58px; height: 58px; font-size: 27px; grid-row: 1 / span 2; position: relative; background: var(--card); box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--gold); }
+.me-edit {
+  grid-column: 3; grid-row: 1; align-self: start;
+  width: auto; height: auto; padding: 2px 2px 2px 8px; border-radius: 8px;
+  font-size: 12.5px; line-height: 1.5; white-space: nowrap;
+}
 .me-ring { position: absolute; inset: -9px; border-radius: 50%; border: 1px dashed rgba(194, 154, 82, .65); animation: spin 18s linear infinite; }
-.me-info { flex: 1; min-width: 0; }
+.me-info { grid-column: 2; grid-row: 1; min-width: 0; }
 .me-info h2 { font-family: var(--serif); font-size: 22px; letter-spacing: .5px; }
 .me-info p { margin: 3px 0 0; font-size: 12px; color: var(--ink-2); }
 .me-motto {
-  display: block; width: 100%;
-  margin-top: 6px; padding: 0; border: 0; background: none; cursor: pointer;
+  grid-column: 2 / -1; grid-row: 2;
+  display: block; width: 100%; margin: 0; padding: 0; border: 0; background: none; cursor: pointer;
   font-size: 11.5px; color: var(--ink-3); font-family: var(--serif);
-  text-align: left; line-height: 1.55;
+  text-align: left; line-height: 1.6;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .me-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 18px; position: relative; z-index: 1; }
 .me-grid > div { display: flex; flex-direction: column; gap: 1px; }
@@ -894,13 +904,11 @@ textarea.input { padding: 10px 12px; height: auto; resize: vertical; line-height
 
 /* ================= 我的页：丰富预览 ================= */
 .me-stats {
-  display: grid; grid-template-columns: 1fr 1fr;
-  width: 100%; max-width: 318px; margin: 18px auto 0;
+  display: grid; grid-template-columns: auto auto; justify-content: start;
+  column-gap: 30px; width: 100%; margin: 18px 0 0;
   position: relative; z-index: 1;
 }
-.ms-col { display: flex; flex-direction: column; row-gap: 9px; padding: 0 16px; min-width: 0; }
-.ms-col:first-child { padding-left: 0; }
-.ms-col:last-child { padding-right: 0; border-left: 1px solid var(--line-2); }
+.ms-col { display: flex; flex-direction: column; row-gap: 9px; min-width: 0; }
 .ms-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .ms-k {
   display: inline-flex; align-items: center; gap: 6px;
@@ -914,12 +922,18 @@ textarea.input { padding: 10px 12px; height: auto; resize: vertical; line-height
   font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 
-/* 窄屏：统计区收窄内边距，避免两列贴边或换行 */
+/* 日期 / 省市 表单控件（替代原生日期框，跟主题一致） */
+.date-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 8px; }
+.date-row .select { padding: 0 22px 0 10px; font-size: 13px; background-position: right 7px center; }
+.region-row { display: grid; grid-template-columns: 1fr 1.15fr; gap: 8px; }
+.region-row .select { font-size: 13px; }
+
+/* 窄屏：统计区与双列下拉收一收 */
 @media (max-width: 380px) {
-  .me-stats { max-width: 100%; }
-  .ms-col { padding: 0 12px; }
+  .me-stats { column-gap: 20px; }
   .ms-k { font-size: 10px; }
   .ms-item b { font-size: 13.5px; }
+  .region-row { grid-template-columns: 1fr 1fr; }
 }
 .me-ringbar {
   display: flex; gap: 16px; margin-top: 12px; position: relative; z-index: 1;
@@ -1102,6 +1116,7 @@ textarea.input { padding: 10px 12px; height: auto; resize: vertical; line-height
 <div class="toast" id="toast"></div>
 
 <script src="js/data.js"></script>
+<script src="js/region.js"></script>
 <script src="js/graph.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/share.js"></script>
